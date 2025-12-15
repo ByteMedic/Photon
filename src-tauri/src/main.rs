@@ -1,6 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use nokhwa::query_devices;
+// NOTE(scanner): `query_devices` est expose via le module `query` dans nokhwa 0.10.
+// Le placer explicitement ici evite les imports cassés lors des mises à jour.
+use nokhwa::query::query_devices;
 use nokhwa::utils::ApiBackend;
 use serde::{Deserialize, Serialize};
 use std::fs;

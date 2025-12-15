@@ -34,6 +34,7 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
   - `debug!` pour les parametres (device, resolution, profil, dpi), stats (temps, score detection), tailles fichiers.
 - Commande utilitaire `log_path` (Tauri) pour exposer le chemin du log a l'UI de diagnostic (frontend peut appeler `invoke("log_path")`).
 - Commande `runtime_info` interroge maintenant `nokhwa` (`ApiBackend::Auto`) pour detecter la presence d'au moins une webcam **sans la reserver** et lit le profil actif depuis le fichier de configuration JSON. En cas d'erreur, un etat degrade est renvoye (webcam_detected=false, profil `None`) mais les logs sont renseignes.
+- Implementation: `nokhwa` expose `query_devices` via le module `nokhwa::query` (version 0.10). Pensez a conserver cet import explicite si vous mettez a jour la dependance afin d'eviter les regressions de compilation.
 - Fichier de configuration runtime: `config.json` dans le dossier donnees applicatif (ex: `~/.local/share/com.photon/Photon/config.json`). Structure minimale: `{ "active_profile": "default" }`. Si le fichier est absent, le profil `default` est renvoye par defaut.
 - UI frontend: panneau "Diagnostic developpeur" (voir `src/App.tsx`) appelle `invoke("log_path")` + `invoke("runtime_info")` et affiche le chemin du fichier de log, l'etat webcam et le profil actif. Bouton a re-utiliser plus tard pour d'autres diagnostics (ex: device courant).
 
