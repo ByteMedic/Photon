@@ -1,0 +1,66 @@
+{
+  "languagePicker": {
+    "label": "Language",
+    "english": "English",
+    "french": "French"
+  },
+  "header": {
+    "title": "Photon",
+    "subtitle": "Webcam scanner — Tauri + Rust + React"
+  },
+  "status": {
+    "webcamReady": "Webcam ready",
+    "webcamConfigure": "Webcam to configure",
+    "license": "Apache-2.0",
+    "techStack": "Native Rust (imageproc, fast_image_resize, pdf-writer)"
+  },
+  "features": {
+    "title": "Planned features",
+    "items": [
+      {
+        "title": "Capture",
+        "description": "Live preview, automatic edge detection, manual crop fallback."
+      },
+      {
+        "title": "Processing",
+        "description": "Deskewing, readability filters, tunable contrast/sharpness, fast resize."
+      },
+      {
+        "title": "Multi-page",
+        "description": "Add, reorder, delete/retake; export PDF/PNG/JPG."
+      },
+      {
+        "title": "Favorites",
+        "description": "Folders + formats + auto-naming; scan profiles (text/photo)."
+      },
+      {
+        "title": "Local & private",
+        "description": "Local-only processing with permissive dependencies."
+      }
+    ]
+  },
+  "steps": {
+    "title": "Next steps",
+    "items": [
+      "Wire the webcam through Tauri, add a mock video source for tests.",
+      "Implement edge detection/deskew purely in Rust.",
+      "Assemble a multi-page PDF export with pdf-writer."
+    ]
+  },
+  "diagnostics": {
+    "title": "Developer diagnostics",
+    "subtitle": "Backend log path (DEBUG level).",
+    "button": "Refresh diagnostics",
+    "loading": "Reading...",
+    "logLabel": "Log file",
+    "logMissing": "Path not loaded yet.",
+    "runtimeWebcam": "Webcam detected",
+    "runtimeProfile": "Active profile",
+    "runtimeYes": "Yes",
+    "runtimeNo": "No",
+    "runtimeMissing": "State not loaded yet.",
+    "profileNone": "None",
+    "errorPrefix": "Error",
+    "instructions": "Click the button to retrieve diagnostics (log + runtime state)."
+  }
+}

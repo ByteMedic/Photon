@@ -36,6 +36,12 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
 - Commande `runtime_info` (stub) renvoie `webcam_detected` et `active_profile`; a remplacer par l'etat reel (device detecte, profil choisi).
 - UI frontend: panneau "Diagnostic developpeur" (voir `src/App.tsx`) qui appelle `invoke("log_path")` + `invoke("runtime_info")` et affiche le chemin du fichier de log, l'etat webcam et le profil actif. Bouton a re-utiliser plus tard pour d'autres diagnostics (ex: device courant).
 
+## Internationalisation (frontend)
+- Langues supportees : **anglais (par defaut)** et **francais**, via des fichiers JSON dans `src/locales/en.json` et `src/locales/fr.json`.
+- Les clefs doivent rester strictement synchronisees entre les deux fichiers; `src/App.tsx` typage les utilise pour empecher les oublis.
+- Le composant `App` expose un selecteur de langue dans l'en-tete. Toute nouvelle chaine d'UI doit etre ajoutee dans les deux JSON puis referencee depuis `App` (ou un composant dedie) sans texte en dur.
+- Penser a commenter les usages sensibles (ex: textes dynamiques lies aux diagnostics) pour guider les nouveaux contributeurs sur l'emplacement des traductions.
+
 ## Icônes de l'application
 - Source actuelle: `src-tauri/icons/icon.png` (placeholder genere).
 - Pour appliquer une identite visuelle: remplacer ce PNG puis lancer `npx tauri icon src-tauri/icons/icon.png` pour regenerer les icones multi-tailles utilisees par Tauri.

@@ -1,0 +1,66 @@
+{
+  "languagePicker": {
+    "label": "Langue",
+    "english": "Anglais",
+    "french": "Français"
+  },
+  "header": {
+    "title": "Photon",
+    "subtitle": "Scanner par webcam — Tauri + Rust + React"
+  },
+  "status": {
+    "webcamReady": "Webcam OK",
+    "webcamConfigure": "Webcam à configurer",
+    "license": "Apache-2.0",
+    "techStack": "Rust natif (imageproc, fast_image_resize, pdf-writer)"
+  },
+  "features": {
+    "title": "Fonctionnalités prévues",
+    "items": [
+      {
+        "title": "Capture",
+        "description": "Aperçu temps réel, détection auto des bords, recadrage manuel de secours."
+      },
+      {
+        "title": "Traitement",
+        "description": "Redressement, filtres lisibilité, réglage contraste/netteté, resize performant."
+      },
+      {
+        "title": "Multi-pages",
+        "description": "Ajout, ordre, suppression/retake; export PDF/PNG/JPG."
+      },
+      {
+        "title": "Favoris",
+        "description": "Dossiers + formats + nommage auto; profils de scan (texte/photo)."
+      },
+      {
+        "title": "Local & privé",
+        "description": "Traitement local uniquement, dépendances permissives."
+      }
+    ]
+  },
+  "steps": {
+    "title": "Prochaines étapes",
+    "items": [
+      "Brancher la webcam via Tauri, mock vidéo pour les tests.",
+      "Implémenter la détection/redressement en Rust pur.",
+      "Assembler un export PDF multi-page avec pdf-writer."
+    ]
+  },
+  "diagnostics": {
+    "title": "Diagnostic développeur",
+    "subtitle": "Chemin du log backend Tauri (niveau DEBUG).",
+    "button": "Actualiser les diagnostics",
+    "loading": "Lecture...",
+    "logLabel": "Fichier de log",
+    "logMissing": "Chemin non chargé.",
+    "runtimeWebcam": "Webcam détectée",
+    "runtimeProfile": "Profil actif",
+    "runtimeYes": "Oui",
+    "runtimeNo": "Non",
+    "runtimeMissing": "État non chargé.",
+    "profileNone": "Aucun",
+    "errorPrefix": "Erreur",
+    "instructions": "Clique sur le bouton pour récupérer les diagnostics (log + état runtime)."
+  }
+}
