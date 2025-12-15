@@ -17,6 +17,7 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
 - [ ] Tests: golden images pour detection/redressement, mocks video pour tests d'integration.
 - [ ] Packaging: regeneration des icones multi-tailles (voir section ci-dessous).
 - [x] Robustesse: commande `housekeeping` pour nettoyer les fichiers temporaires et surveiller l'espace disque.
+- [x] Export/nommage: maquette export PDF/PNG/JPG avec options de qualite (dpi/JPG) et previsualisation de nommage auto.
 
 ## Logger minimal (Rust backend)
 - Initialisation dans `src-tauri/src/main.rs` (`init_logger`), lancee au startup Tauri.
@@ -57,6 +58,7 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
 - Les ecrans capture/recadrage/multi-page/export sont maquettes dans `src/App.tsx` via un mini tab-switcher (`ScreenTab`) et des composants dedies (`CaptureScreen`, `CropScreen`, `PageRail`, `ExportPanel`).
 - Les traductions de cette maquette sont sous la clef `uiPlayground` dans `src/locales/en.json` et `src/locales/fr.json`; ajouter/mettre a jour les chaines dans les deux fichiers avant d'etendre la maquette.
 - Les donnees affichees sont des placeholders stables (useMemo) afin de conserver le layout et guider le cablage futur (webcam Tauri, recadrage reel, rail multi-page). Remplacer progressivement ces mocks par l'etat applicatif reel.
+- Le panneau d'export couvre: choix de format (PDF multi-page ou lots PNG/JPG), DPI, qualite JPG, destination texte libre et nommage auto. Les tokens disponibles sont `{date}`, `{time}`, `{counter}`, `{profile}`, `{format}`, `{dpi}` et une previsualisation controle les collisions via un compteur incremente automatiquement.
 
 ## Gestion des favoris et configuration (React)
 - Le panneau `FavoritesConfigPanel` dans `src/App.tsx` gere les favoris (dossier + format + profil) et les preferences globales (format/profil/nommage par defaut). Il est volontairement tres commente pour guider les nouveaux devs.

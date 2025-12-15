@@ -10,6 +10,8 @@ type TranslationSchema = typeof en;
 type Locale = "en" | "fr";
 // Simple enum-like union to drive the screen previewer without coupling to routing for now.
 type ScreenKey = "capture" | "crop" | "pages" | "export";
+// Export formats supported by the UX mock; wiring will later delegate to Rust commands.
+type ExportFormat = "pdf" | "png" | "jpg";
 
 // A favorite bundles where and how to export (folder + format) with an image profile alias.
 type Favorite = {
@@ -325,10 +327,52 @@ function PageRail({
 // Export dialog mock: keeps the form layout and naming preview visible for devs.
 function ExportPanel({
   t,
+  format,
+  dpi,
+  jpgQuality,
+  destination,
+  namingModel,
+  counter,
   namingPreview,
+  collision,
+  resolvedCounter,
+  includePageCountTag,
+  includeQualityTag,
+  includeTimestamp,
+  pageCount,
+  onFormatChange,
+  onDpiChange,
+  onJpgQualityChange,
+  onDestinationChange,
+  onNamingModelChange,
+  onCounterChange,
+  onTogglePageCountTag,
+  onToggleQualityTag,
+  onToggleTimestamp,
 }: {
   t: TranslationSchema["uiPlayground"]["export"];
+  format: ExportFormat;
+  dpi: number;
+  jpgQuality: number;
+  destination: string;
+  namingModel: string;
+  counter: number;
   namingPreview: string;
+  collision: boolean;
+  resolvedCounter: number;
+  includePageCountTag: boolean;
+  includeQualityTag: boolean;
+  includeTimestamp: boolean;
+  pageCount: number;
+  onFormatChange: (value: ExportFormat) => void;
+  onDpiChange: (value: number) => void;
+  onJpgQualityChange: (value: number) => void;
+  onDestinationChange: (value: string) => void;
+  onNamingModelChange: (value: string) => void;
+  onCounterChange: (value: number) => void;
+  onTogglePageCountTag: (value: boolean) => void;
+  onToggleQualityTag: (value: boolean) => void;
+  onToggleTimestamp: (value: boolean) => void;
 }) {
   return (
     <div className="workspace">
@@ -340,31 +384,109 @@ function ExportPanel({
         <div className="export-grid">
           <label className="field">
             <span className="label">{t.formatLabel}</span>
-            <select>
-              <option>PDF</option>
-              <option>PNG</option>
-              <option>JPG</option>
+            <select value={format} onChange={(event) => onFormatChange(event.target.value as ExportFormat)}>
+              <option value="pdf">{t.formatPdf}</option>
+              <option value="png">{t.formatPng}</option>
+              <option value="jpg">{t.formatJpg}</option>
             </select>
+            <p className="muted hint">{t.formatHint}</p>
           </label>
           <label className="field">
             <span className="label">{t.qualityLabel}</span>
-            <select>
-              <option>1080p</option>
-              <option>1440p</option>
-            </select>
+            <div className="inline-field">
+              <select
+                value={dpi}
+                onChange={(event) => onDpiChange(Number(event.target.value))}
+                aria-label={t.qualityLabel}
+              >
+                <option value={200}>{t.qualityOptionMedium}</option>
+                <option value={300}>{t.qualityOptionHigh}</option>
+                <option value={450}>{t.qualityOptionMax}</option>
+              </select>
+              {format !== "pdf" && (
+                <label className="field compact-field">
+                  <span className="label">{t.jpgQualityLabel}</span>
+                  <input
+                    type="number"
+                    min={60}
+                    max={100}
+                    value={jpgQuality}
+                    onChange={(event) => onJpgQualityChange(Number(event.target.value))}
+                  />
+                </label>
+              )}
+            </div>
+            <p className="muted hint">{t.qualityHint}</p>
           </label>
           <label className="field">
             <span className="label">{t.destinationLabel}</span>
-            <input type="text" placeholder="~/Documents/Scans" />
+            <input
+              type="text"
+              value={destination}
+              onChange={(event) => onDestinationChange(event.target.value)}
+              placeholder="~/Documents/Scans"
+            />
+            <p className="muted hint">{t.destinationHint}</p>
           </label>
           <label className="field">
             <span className="label">{t.namingLabel}</span>
-            <input type="text" defaultValue="{date}-{counter}-{profile}" />
+            <input
+              type="text"
+              value={namingModel}
+              onChange={(event) => onNamingModelChange(event.target.value)}
+            />
+            <p className="muted hint">{t.namingHint}</p>
           </label>
         </div>
-        <div className="naming-preview">
-          <span>{t.previewLabel}</span>
-          <code>{namingPreview}</code>
+        <div className="naming-section">
+          <div className="naming-preview">
+            <span>{t.previewLabel}</span>
+            <code>{namingPreview}</code>
+          </div>
+          <div className="naming-meta">
+            <div className="meta-row">
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={includeTimestamp}
+                  onChange={(event) => onToggleTimestamp(event.target.checked)}
+                />
+                <span>{t.timestampLabel}</span>
+              </label>
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={includePageCountTag}
+                  onChange={(event) => onTogglePageCountTag(event.target.checked)}
+                />
+                <span>{t.pageCountLabel.replace("{count}", String(pageCount))}</span>
+              </label>
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={includeQualityTag}
+                  onChange={(event) => onToggleQualityTag(event.target.checked)}
+                />
+                <span>{t.qualityTagLabel.replace("{dpi}", String(dpi))}</span>
+              </label>
+            </div>
+            <div className="counter-row">
+              <label className="field compact-field">
+                <span className="label">{t.counterLabel}</span>
+                <input
+                  type="number"
+                  min={1}
+                  value={counter}
+                  onChange={(event) => onCounterChange(Number(event.target.value))}
+                />
+              </label>
+              <p className="muted">
+                {collision
+                  ? t.collisionResolved.replace("{counter}", String(resolvedCounter))
+                  : t.collisionFree}
+              </p>
+            </div>
+          </div>
         </div>
         <div className="primary-actions">
           <button className="primary">{t.export}</button>
@@ -666,6 +788,16 @@ function App() {
   const [deviceReady] = useState(false);
   // Track the current UI language (default English as requested).
   const [locale, setLocale] = useState<Locale>("en");
+  // Export options kept as state to let the playground demonstrate the expected UX.
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("pdf");
+  const [dpi, setDpi] = useState(300);
+  const [jpgQuality, setJpgQuality] = useState(92);
+  const [destination, setDestination] = useState("~/Documents/Scans/Reports");
+  const [namingModel, setNamingModel] = useState("{date}-{time}-{profile}-{counter}");
+  const [counter, setCounter] = useState(1);
+  const [includePageCountTag, setIncludePageCountTag] = useState(true);
+  const [includeQualityTag, setIncludeQualityTag] = useState(true);
+  const [includeTimestamp, setIncludeTimestamp] = useState(true);
   // Store diagnostic data fetched from the backend.
   const [logPath, setLogPath] = useState<string | null>(null);
   const [logError, setLogError] = useState<string | null>(null);
@@ -711,7 +843,109 @@ function App() {
     ],
     [t],
   );
-  const namingPreview = useMemo(() => `2024-05-04-1430-${t.uiPlayground.capture.profileDefault}-001.pdf`, [t]);
+  // Keep the timestamp stable across renders to avoid a flickering preview while typing.
+  const stableNow = useMemo(() => new Date("2024-05-04T14:30:00Z"), []);
+  // Minimal set used to surface a collision and demonstrate the auto-increment behavior.
+  const existingExports = useMemo(() => {
+    // Keep a short list in both locales so the collision indicator works regardless of language.
+    const englishProfile = translations.en.uiPlayground.capture.profileDefault;
+    const frenchProfile = translations.fr.uiPlayground.capture.profileDefault;
+    return new Set([
+      `2024-05-04-1430-${englishProfile}-001.pdf`,
+      `2024-05-04-1430-${englishProfile}-002.pdf`,
+      `2024-05-04-1430-${frenchProfile}-001.pdf`,
+    ]);
+  }, []);
+
+  // Helper that turns a naming model into an actual file name while avoiding collisions.
+  const computeAutoName = useMemo(() => {
+    // Padding helper kept inline for readability.
+    const pad = (value: number) => String(value).padStart(2, "0");
+
+    return (params: {
+      model: string;
+      counter: number;
+      format: ExportFormat;
+      profile: string;
+      includePageCount: boolean;
+      includeQuality: boolean;
+      includeTimestampParts: boolean;
+      pageCount: number;
+      dpi: number;
+      now: Date;
+      collisions: Set<string>;
+    }) => {
+      const { model, counter, format, profile, includePageCount, includeQuality, includeTimestampParts, pageCount, dpi, now, collisions } =
+        params;
+
+      // Render the core name without extension, allowing tokens for date/time/profile/counter.
+      const renderName = (counterValue: number) => {
+        const datePart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        const timePart = `${pad(now.getHours())}${pad(now.getMinutes())}`;
+
+        // Replace tokens with user-friendly values; we keep replacements simple for readability.
+        let name = model
+          .replace("{date}", datePart)
+          .replace("{time}", includeTimestampParts ? timePart : "")
+          .replace("{counter}", String(counterValue).padStart(3, "0"))
+          .replace("{profile}", profile)
+          .replace("{format}", format.toUpperCase())
+          .replace("{dpi}", `${dpi}dpi`);
+
+        if (includePageCount) {
+          name += `-${pageCount}p`;
+        }
+        if (includeQuality) {
+          name += `-${dpi}dpi`;
+        }
+
+        return name;
+      };
+
+      // Apply the extension the exporter will use.
+      const extension = format === "pdf" ? "pdf" : format;
+      let resolvedCounter = Math.max(1, counter);
+      let candidate = `${renderName(resolvedCounter)}.${extension}`;
+      let collisionDetected = collisions.has(candidate);
+
+      // When a collision is found, increment the counter until a free slot is available.
+      while (collisions.has(candidate)) {
+        resolvedCounter += 1;
+        candidate = `${renderName(resolvedCounter)}.${extension}`;
+      }
+
+      return { name: candidate, collisionDetected, resolvedCounter };
+    };
+  }, []);
+
+  const namingPreviewState = useMemo(() => {
+    return computeAutoName({
+      model: namingModel,
+      counter,
+      format: exportFormat,
+      profile: t.uiPlayground.capture.profileDefault,
+      includePageCount: includePageCountTag,
+      includeQuality: includeQualityTag,
+      includeTimestampParts: includeTimestamp,
+      pageCount: mockPages.length,
+      dpi,
+      now: stableNow,
+      collisions: existingExports,
+    });
+  }, [
+    computeAutoName,
+    counter,
+    dpi,
+    exportFormat,
+    existingExports,
+    includePageCountTag,
+    includeQualityTag,
+    includeTimestamp,
+    mockPages.length,
+    namingModel,
+    stableNow,
+    t.uiPlayground.capture.profileDefault,
+  ]);
 
   // Persist configuration anytime it changes to keep the UI and localStorage aligned.
   useEffect(() => {
@@ -787,7 +1021,33 @@ function App() {
         )}
         {activeScreen === "crop" && <CropScreen t={t.uiPlayground.crop} />}
         {activeScreen === "pages" && <PageRail t={t.uiPlayground.pages} pages={mockPages} />}
-        {activeScreen === "export" && <ExportPanel t={t.uiPlayground.export} namingPreview={namingPreview} />}
+        {activeScreen === "export" && (
+          <ExportPanel
+            t={t.uiPlayground.export}
+            format={exportFormat}
+            dpi={dpi}
+            jpgQuality={jpgQuality}
+            destination={destination}
+            namingModel={namingModel}
+            counter={counter}
+            namingPreview={namingPreviewState.name}
+            collision={namingPreviewState.collisionDetected}
+            resolvedCounter={namingPreviewState.resolvedCounter}
+            includePageCountTag={includePageCountTag}
+            includeQualityTag={includeQualityTag}
+            includeTimestamp={includeTimestamp}
+            pageCount={mockPages.length}
+            onFormatChange={setExportFormat}
+            onDpiChange={setDpi}
+            onJpgQualityChange={setJpgQuality}
+            onDestinationChange={setDestination}
+            onNamingModelChange={setNamingModel}
+            onCounterChange={setCounter}
+            onTogglePageCountTag={setIncludePageCountTag}
+            onToggleQualityTag={setIncludeQualityTag}
+            onToggleTimestamp={setIncludeTimestamp}
+          />
+        )}
       </section>
 
       <FavoritesConfigPanel t={t.favorites} config={userConfig} onConfigChange={setUserConfig} />

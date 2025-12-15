@@ -43,8 +43,8 @@
    - [ ] Capture iterative, liste des pages, re-ordre par glisser, suppression/retake.
    - [ ] Sauvegarde temporaire, gestion memoire/poids par page.
 9) Export et nommage
-   - [ ] Export PDF multi-page + PNG/JPG avec options (dpi/qualite).
-   - [ ] Nommage auto (date, compteur), gestion collisions, metadata basique.
+   - [x] Export PDF multi-page + PNG/JPG avec options (dpi/qualite).
+   - [x] Nommage auto (date, compteur), gestion collisions, metadata basique.
 10) Favoris et configuration
     - [x] Creation/edition/suppression de favoris (dossier + format + profil).
     - [x] Stockage local des prefs, import/export de la config.
