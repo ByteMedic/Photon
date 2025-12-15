@@ -9,7 +9,7 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
 - Lorsqu'un TODO est traite, le supprimer et, si besoin, consigner la decision dans ce fichier.
 
 ## Backlog cible a materialiser dans le code
-- [ ] Rust backend: commandes de capture webcam, detection/redressement, filtres, export PDF/PNG/JPG.
+- [ ] Rust backend: commandes de capture webcam, detection/redressement, filtres, export PDF/PNG/JPG (stubs exposes pour le moment).
 - [ ] Frontend React: UI de capture (etat sans camera, selection camera), recadrage manuel, flux multi-page.
 - [ ] Configuration/persistance: chargement/sauvegarde des favoris, dossiers et profils.
 - [x] Observabilite: logger minimal en place (console + fichier). Reste a tracer le pipeline (capture/detection/export) avec contexte (session, device).
@@ -25,6 +25,14 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
   - Cote Rust: `log::info!("message")`, `log::debug!("details {:?}", data)`, `log::error!("message {}", err)`.
   - Inspecter en dev: `tail -f ~/.local/share/com.photon/Photon/photon.log`.
 - TODO: ajouter un identifiant de session et les infos device/webcam dans les logs du pipeline.
+
+## Instrumentation du pipeline (stubs)
+- Commandes Tauri exposees (stubs pour cadrer l'instrumentation): `capture_frame_stub`, `detect_document_stub`, `export_pdf_stub`.
+- Chaque stub trace `info` (debut) et `debug` (details/TODO) puis retourne `Err("... not implemented")` tant que l'implementation n'est pas faite.
+- Quand les vraies commandes seront implantees, conserver cette granularite de logs:
+  - `info!` au debut/fin de chaque etape (capture, detection, export).
+  - `debug!` pour les parametres (device, resolution, profil, dpi), stats (temps, score detection), tailles fichiers.
+- Commande utilitaire `log_path` (Tauri) pour exposer le chemin du log a l'UI de diagnostic (frontend peut appeler `invoke("log_path")`).
 
 ## Icônes de l'application
 - Source actuelle: `src-tauri/icons/icon.png` (placeholder genere).
