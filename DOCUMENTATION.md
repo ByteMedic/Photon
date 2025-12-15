@@ -33,7 +33,8 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
   - `info!` au debut/fin de chaque etape (capture, detection, export).
   - `debug!` pour les parametres (device, resolution, profil, dpi), stats (temps, score detection), tailles fichiers.
 - Commande utilitaire `log_path` (Tauri) pour exposer le chemin du log a l'UI de diagnostic (frontend peut appeler `invoke("log_path")`).
-- UI frontend: panneau "Diagnostic developpeur" (voir `src/App.tsx`) qui appelle `invoke("log_path")` et affiche le chemin du fichier de log. Bouton a re-utiliser plus tard pour d'autres diagnostics (ex: device courant).
+- Commande `runtime_info` (stub) renvoie `webcam_detected` et `active_profile`; a remplacer par l'etat reel (device detecte, profil choisi).
+- UI frontend: panneau "Diagnostic developpeur" (voir `src/App.tsx`) qui appelle `invoke("log_path")` + `invoke("runtime_info")` et affiche le chemin du fichier de log, l'etat webcam et le profil actif. Bouton a re-utiliser plus tard pour d'autres diagnostics (ex: device courant).
 
 ## Icônes de l'application
 - Source actuelle: `src-tauri/icons/icon.png` (placeholder genere).

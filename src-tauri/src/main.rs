@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use serde::Serialize;
 use std::fs;
 use std::path::PathBuf;
 
@@ -39,6 +40,23 @@ fn export_pdf_stub() -> Result<(), String> {
     log::info!("export_pdf:start");
     log::debug!("export_pdf: TODO: assembler les pages (ordre, dpi, profil) et ecrire le PDF");
     Err("export_pdf not implemented".to_string())
+}
+
+#[derive(Serialize)]
+struct RuntimeInfo {
+    webcam_detected: bool,
+    active_profile: Option<String>,
+}
+
+#[tauri::command]
+fn runtime_info() -> Result<RuntimeInfo, String> {
+    log::info!("runtime_info:fetch");
+    log::debug!("runtime_info: TODO: retourner l'etat reel (webcam presente, profil actif)");
+    // TODO(platform): interroger l'etat runtime (webcam detectee, profil/scene en cours).
+    Ok(RuntimeInfo {
+        webcam_detected: false,
+        active_profile: Some("default".to_string()),
+    })
 }
 
 fn log_file_path() -> anyhow::Result<PathBuf> {
@@ -92,7 +110,8 @@ fn main() {
             log_path,
             capture_frame_stub,
             detect_document_stub,
-            export_pdf_stub
+            export_pdf_stub,
+            runtime_info
         ])
         .setup(|_app| {
             if let Err(err) = init_logger() {

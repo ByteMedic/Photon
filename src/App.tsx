@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
+type RuntimeInfo = {
+  webcam_detected: boolean;
+  active_profile: string | null;
+};
+
 function FeatureItem({ title, description }: { title: string; description: string }) {
   return (
     <li className="feature">
@@ -14,19 +19,26 @@ function App() {
   const [deviceReady] = useState(false);
   const [logPath, setLogPath] = useState<string | null>(null);
   const [logError, setLogError] = useState<string | null>(null);
-  const [loadingLogPath, setLoadingLogPath] = useState(false);
+  const [runtimeInfo, setRuntimeInfo] = useState<RuntimeInfo | null>(null);
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
+  const [loadingDiagnostics, setLoadingDiagnostics] = useState(false);
 
-  const fetchLogPath = async () => {
-    setLoadingLogPath(true);
+  const fetchDiagnostics = async () => {
+    setLoadingDiagnostics(true);
     setLogError(null);
+    setRuntimeError(null);
     try {
       const path = await invoke<string>("log_path");
       setLogPath(path);
+      const info = await invoke<RuntimeInfo>("runtime_info");
+      setRuntimeInfo(info);
     } catch (err) {
       setLogError(String(err));
+      setRuntimeError(String(err));
       setLogPath(null);
+      setRuntimeInfo(null);
     } finally {
-      setLoadingLogPath(false);
+      setLoadingDiagnostics(false);
     }
   };
 
@@ -70,23 +82,46 @@ function App() {
               <h3>Diagnostic développeur</h3>
               <p>Chemin du log backend Tauri (niveau DEBUG).</p>
             </div>
-            <button className="ghost" onClick={fetchLogPath} disabled={loadingLogPath}>
-              {loadingLogPath ? "Lecture..." : "Afficher le chemin du log"}
+            <button className="ghost" onClick={fetchDiagnostics} disabled={loadingDiagnostics}>
+              {loadingDiagnostics ? "Lecture..." : "Actualiser les diagnostics"}
             </button>
           </div>
 
           <div className="card-body">
-            {logPath && (
+            <div className="runtime-grid">
               <div className="log-path">
                 <span className="label">Log file</span>
-                <code>{logPath}</code>
+                {logPath ? <code>{logPath}</code> : <p className="muted">Chemin non chargé.</p>}
               </div>
+              <div className="runtime-block">
+                <span className="label">Webcam détectée</span>
+                {runtimeInfo ? (
+                  <span className={`pill ${runtimeInfo.webcam_detected ? "pill-ok" : "pill-warn"}`}>
+                    {runtimeInfo.webcam_detected ? "Oui" : "Non"}
+                  </span>
+                ) : (
+                  <p className="muted">Etat non chargé.</p>
+                )}
+              </div>
+              <div className="runtime-block">
+                <span className="label">Profil actif</span>
+                {runtimeInfo ? (
+                  <span className="pill pill-info">{runtimeInfo.active_profile ?? "Aucun"}</span>
+                ) : (
+                  <p className="muted">Etat non chargé.</p>
+                )}
+              </div>
+            </div>
+
+            {(logError || runtimeError) && (
+              <div className="log-error">Erreur: {logError || runtimeError}</div>
             )}
-            {logError && <div className="log-error">Erreur: {logError}</div>}
-            {!logPath && !logError && <p className="muted">Clique sur le bouton pour récupérer le chemin du log.</p>}
+            {!logPath && !runtimeInfo && !logError && !runtimeError && (
+              <p className="muted">Clique sur le bouton pour récupérer les diagnostics (log + état runtime).</p>
+            )}
           </div>
         </div>
-        {/* TODO(diagnostics): ajouter d'autres infos (device webcam détecté, profil en cours, dernière capture) quand disponibles. */}
+        {/* TODO(diagnostics): alimenter runtime_info avec les vraies données (webcam réelle, profil sélectionné, dernière capture). */}
       </section>
     </div>
   );
