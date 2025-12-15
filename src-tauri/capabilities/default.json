@@ -1,0 +1,6 @@
+{
+  "identifier": "main",
+  "description": "Default permissions for Photon",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

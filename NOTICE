@@ -1,0 +1,5 @@
+Photon
+Copyright 2024 Photon contributors
+
+This product is licensed under the Apache License 2.0.
+Third-party components currently referenced (Tauri, React, imageproc, fast_image_resize, pdf-writer, serde, directories, etc.) are under permissive licenses (Apache-2.0/MIT/BSD) and do not require additional NOTICE text at this stage. Update this file if future dependencies include NOTICE requirements.

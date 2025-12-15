@@ -47,3 +47,9 @@ Application desktop (Tauri + Rust, frontend React) de scan par webcam, multi-pla
 
 ## Licence
 - Apache-2.0 (voir le fichier LICENSE).
+
+## Demarrage rapide (dev)
+- Prerequis: Rust stable, Node 18+, npm, toolchains build (clang/gcc selon OS).
+- Installation deps JS/Rust: `npm install` (installe @tauri-apps/cli en dev, React/Vite).
+- Lancement dev: `npm run tauri:dev` (frontend Vite sur 5173, app Tauri).
+- Build desktop: `npm run tauri:build` (sortie dans `src-tauri/target/release/bundle`).

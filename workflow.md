@@ -11,7 +11,7 @@
    - Ecrans d'erreur/permission webcam et etat sans camera.
 4) Mise en place projet
    - Init repo, licence Apache-2.0, tooling (format, lint, tests), CI basique.
-   - Scaffold Tauri + React (frontend) et commandes Rust, theming minimal.
+   - Scaffold Tauri + React (frontend) et commandes Rust, theming minimal. (fait)
 5) Gestion webcam et permissions
    - Acces video, selection de camera, messages d'autorisation, mock video pour tests.
 6) Detection et redressement
@@ -40,6 +40,7 @@
    - Jeux d'images de reference; tests manuels avec webcams reelles.
 14) Packaging et distribution
     - Build Tauri pour Windows/Linux/macOS; signature/code signing si necessaire; auto-update via Tauri si retenu.
+    - Plus tard: remplacer `src-tauri/icons/icon.png` par l'identite visuelle finale puis lancer `npx tauri icon src-tauri/icons/icon.png` pour regenerer les icones multi-tailles.
 15) Documentation
     - Guide utilisateur (install, capture, export), FAQ permissions webcam.
     - Notes techniques (pipeline image, architecture) et checklists de regression.

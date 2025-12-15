@@ -1,0 +1,30 @@
+[package]
+name = "photon"
+version = "0.1.0"
+description = "Scanner webcam Tauri + Rust"
+authors = ["Photon contributors"]
+license = "Apache-2.0"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+image = "0.24"
+imageproc = "0.23"
+fast_image_resize = "5"
+pdf-writer = "0.10"
+directories = "5"
+
+[profile.release]
+opt-level = "s"
+strip = true
+lto = true
+
+[[bin]]
+name = "photon"
+path = "src/main.rs"

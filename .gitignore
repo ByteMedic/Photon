@@ -1,0 +1,10 @@
+node_modules
+dist
+.vite
+.turbo
+.DS_Store
+src-tauri/target
+src-tauri/.fingerprint
+src-tauri/.cargo-lock
+src-tauri/Cargo.lock
+
