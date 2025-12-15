@@ -46,8 +46,8 @@
    - [ ] Export PDF multi-page + PNG/JPG avec options (dpi/qualite).
    - [ ] Nommage auto (date, compteur), gestion collisions, metadata basique.
 10) Favoris et configuration
-    - [ ] Creation/edition/suppression de favoris (dossier + format + profil).
-    - [ ] Stockage local des prefs, import/export de la config.
+    - [x] Creation/edition/suppression de favoris (dossier + format + profil).
+    - [x] Stockage local des prefs, import/export de la config.
 11) Robustesse et securite
     - [x] Nettoyage fichiers temporaires, gestion faible espace disque.
     - [x] Logs debug (console + fichier) en place; tracer completement le pipeline capture/detection/export.

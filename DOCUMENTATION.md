@@ -12,7 +12,7 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
 - [ ] Rust backend: commandes de capture webcam, detection/redressement, filtres, export PDF/PNG/JPG (stubs exposes pour le moment).
 - [ ] Frontend React: UI de capture (etat sans camera, selection camera), recadrage manuel, flux multi-page.
 - [x] Maquette UX statique (React) pour les ecrans capture/recadrage/multi-page/export avec bascule par onglets.
-- [ ] Configuration/persistance: chargement/sauvegarde des favoris, dossiers et profils.
+- [x] Configuration/persistance: chargement/sauvegarde des favoris, dossiers et profils (stockage local + import/export JSON).
 - [x] Observabilite: logger minimal en place (console + fichier). Reste a tracer le pipeline (capture/detection/export) avec contexte (session, device).
 - [ ] Tests: golden images pour detection/redressement, mocks video pour tests d'integration.
 - [ ] Packaging: regeneration des icones multi-tailles (voir section ci-dessous).
@@ -57,6 +57,12 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
 - Les ecrans capture/recadrage/multi-page/export sont maquettes dans `src/App.tsx` via un mini tab-switcher (`ScreenTab`) et des composants dedies (`CaptureScreen`, `CropScreen`, `PageRail`, `ExportPanel`).
 - Les traductions de cette maquette sont sous la clef `uiPlayground` dans `src/locales/en.json` et `src/locales/fr.json`; ajouter/mettre a jour les chaines dans les deux fichiers avant d'etendre la maquette.
 - Les donnees affichees sont des placeholders stables (useMemo) afin de conserver le layout et guider le cablage futur (webcam Tauri, recadrage reel, rail multi-page). Remplacer progressivement ces mocks par l'etat applicatif reel.
+
+## Gestion des favoris et configuration (React)
+- Le panneau `FavoritesConfigPanel` dans `src/App.tsx` gere les favoris (dossier + format + profil) et les preferences globales (format/profil/nommage par defaut). Il est volontairement tres commente pour guider les nouveaux devs.
+- Stockage local: tout est sauvegarde automatiquement dans `localStorage` sous la clef `photon.favorites.config` via le hook `useEffect`. En environnement non navigateur (SSR/build), la lecture est protegee.
+- Import/export: boutons JSON declenchent un `input[type=file]` cache et un export Blob pour partager la configuration. Les imports passent par `sanitizeConfig` qui valide les champs et comble les valeurs manquantes a partir de la config courante ou des defaults.
+- Typage: `Favorite`, `Preferences` et `UserConfig` centralisent la structure partagee (frontend/back). Pour reutilisation cote Rust/Tauri, conserver ce schema.
 
 ## Icônes de l'application
 - Source actuelle: `src-tauri/icons/icon.png` (placeholder genere).

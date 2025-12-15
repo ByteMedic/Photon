@@ -579,3 +579,62 @@ h3 {
   border-radius: 10px;
   border: 1px solid #e2e8f0;
 }
+
+/* Favorites & configuration */
+.favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+  margin: 20px 0;
+}
+
+.favorites-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.favorites-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.favorites-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.favorites-status {
+  padding: 8px 10px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #334155;
+  font-weight: 600;
+}
+
+.favorites-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.favorites-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+}
+
+.hidden-input {
+  display: none;
+}

@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import en from "./locales/en.json";
 import fr from "./locales/fr.json";
@@ -9,6 +10,49 @@ type TranslationSchema = typeof en;
 type Locale = "en" | "fr";
 // Simple enum-like union to drive the screen previewer without coupling to routing for now.
 type ScreenKey = "capture" | "crop" | "pages" | "export";
+
+// A favorite bundles where and how to export (folder + format) with an image profile alias.
+type Favorite = {
+  id: number;
+  name: string;
+  folder: string;
+  format: "PDF" | "PNG" | "JPG";
+  profile: string;
+};
+
+// Global preferences kept next to favorites to mimic the future configuration file.
+type Preferences = {
+  defaultFormat: Favorite["format"];
+  defaultProfile: string;
+  namingPattern: string;
+};
+
+// Persisted configuration blob shared between the UI and the Tauri backend later on.
+type UserConfig = {
+  favorites: Favorite[];
+  preferences: Preferences;
+};
+
+// Local-storage key kept explicit so it can be reused from the backend when bridged.
+const CONFIG_STORAGE_KEY = "photon.favorites.config";
+
+// Default configuration gives new contributors a concrete example to tweak.
+const DEFAULT_CONFIG: UserConfig = {
+  favorites: [
+    {
+      id: 1,
+      name: "Workspace PDF",
+      folder: "~/Documents/Scans",
+      format: "PDF",
+      profile: "Text profile",
+    },
+  ],
+  preferences: {
+    defaultFormat: "PDF",
+    defaultProfile: "Text profile",
+    namingPattern: "{date}-{counter}-{profile}",
+  },
+};
 
 // Runtime info returned by the Tauri backend (stubbed for now but typed here for clarity).
 type RuntimeInfo = {
@@ -21,6 +65,76 @@ const translations: Record<Locale, TranslationSchema> = {
   en,
   fr,
 };
+
+// Safely validate a config object, falling back to a provided default when values are missing.
+function sanitizeConfig(raw: Partial<UserConfig> | null | undefined, fallback: UserConfig): UserConfig {
+  const favoritesSource = Array.isArray(raw?.favorites) ? raw.favorites : null;
+  const favorites = favoritesSource
+    ? favoritesSource
+        .map((fav, index) => {
+          if (
+            !fav ||
+            typeof fav !== "object" ||
+            typeof fav.name !== "string" ||
+            typeof fav.folder !== "string" ||
+            (fav.format !== "PDF" && fav.format !== "PNG" && fav.format !== "JPG") ||
+            typeof fav.profile !== "string"
+          ) {
+            return null;
+          }
+
+          return {
+            id: typeof fav.id === "number" ? fav.id : index + 1,
+            name: fav.name,
+            folder: fav.folder,
+            format: fav.format,
+            profile: fav.profile,
+          } satisfies Favorite;
+        })
+        .filter(Boolean) as Favorite[]
+    : fallback.favorites;
+
+  const prefs = raw?.preferences;
+  const preferences: Preferences = prefs && typeof prefs === "object"
+    ? {
+        defaultFormat:
+          prefs.defaultFormat === "PDF" || prefs.defaultFormat === "PNG" || prefs.defaultFormat === "JPG"
+            ? prefs.defaultFormat
+            : fallback.preferences.defaultFormat,
+        defaultProfile:
+          typeof prefs.defaultProfile === "string"
+            ? prefs.defaultProfile
+            : fallback.preferences.defaultProfile,
+        namingPattern:
+          typeof prefs.namingPattern === "string"
+            ? prefs.namingPattern
+            : fallback.preferences.namingPattern,
+      }
+    : fallback.preferences;
+
+  return { favorites, preferences };
+}
+
+// Extract a strongly-typed configuration from localStorage, falling back to defaults if missing.
+function readStoredConfig(): UserConfig {
+  // Guard against SSR/build time where `localStorage` is undefined.
+  if (typeof localStorage === "undefined") {
+    return DEFAULT_CONFIG;
+  }
+
+  const saved = localStorage.getItem(CONFIG_STORAGE_KEY);
+  if (!saved) {
+    return DEFAULT_CONFIG;
+  }
+
+  try {
+    const parsed = JSON.parse(saved) as Partial<UserConfig>;
+    return sanitizeConfig(parsed, DEFAULT_CONFIG);
+  } catch (error) {
+    console.warn("Failed to parse stored config", error);
+    return DEFAULT_CONFIG;
+  }
+}
 
 // Simple feature renderer kept generic so it can render any locale-provided item.
 function FeatureItem({ title, description }: TranslationSchema["features"]["items"][number]) {
@@ -261,6 +375,292 @@ function ExportPanel({
   );
 }
 
+// Favorites/configuration panel: handles CRUD locally and exposes import/export hooks.
+function FavoritesConfigPanel({
+  t,
+  config,
+  onConfigChange,
+}: {
+  t: TranslationSchema["favorites"];
+  config: UserConfig;
+  onConfigChange: (config: UserConfig) => void;
+}) {
+  // Local draft state keeps the form controlled and ready for edits.
+  const [favoriteName, setFavoriteName] = useState("");
+  const [favoriteFolder, setFavoriteFolder] = useState("");
+  const [favoriteFormat, setFavoriteFormat] = useState<Favorite["format"]>("PDF");
+  const [favoriteProfile, setFavoriteProfile] = useState("");
+  const [status, setStatus] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  // Hidden file input to drive JSON import without exposing native UI elsewhere.
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper to reset the form after a save/delete.
+  const resetForm = () => {
+    setFavoriteName("");
+    setFavoriteFolder("");
+    setFavoriteFormat("PDF");
+    setFavoriteProfile("");
+    setEditingId(null);
+  };
+
+  // Fill the form with the selected favorite to ease edition.
+  const handleEdit = (fav: Favorite) => {
+    setFavoriteName(fav.name);
+    setFavoriteFolder(fav.folder);
+    setFavoriteFormat(fav.format);
+    setFavoriteProfile(fav.profile);
+    setEditingId(fav.id);
+    setStatus(t.editingNotice.replace("{name}", fav.name));
+  };
+
+  // Remove a favorite and persist immediately.
+  const handleDelete = (id: number) => {
+    const updated = { ...config, favorites: config.favorites.filter((fav) => fav.id !== id) };
+    onConfigChange(updated);
+    setStatus(t.deletedNotice);
+    if (editingId === id) {
+      resetForm();
+    }
+  };
+
+  // Insert or update a favorite with simple validation (no empty fields allowed).
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!favoriteName.trim() || !favoriteFolder.trim() || !favoriteProfile.trim()) {
+      setStatus(t.validationError);
+      return;
+    }
+
+    const nextFavorite: Favorite = {
+      id: editingId ?? Date.now(),
+      name: favoriteName.trim(),
+      folder: favoriteFolder.trim(),
+      format: favoriteFormat,
+      profile: favoriteProfile.trim(),
+    };
+
+    const favorites = editingId
+      ? config.favorites.map((fav) => (fav.id === editingId ? nextFavorite : fav))
+      : [...config.favorites, nextFavorite];
+
+    onConfigChange({ ...config, favorites });
+    setStatus(editingId ? t.updatedNotice : t.savedNotice);
+    resetForm();
+  };
+
+  // Update preferences inline with live persistence.
+  const updatePreferences = (partial: Partial<Preferences>) => {
+    onConfigChange({ ...config, preferences: { ...config.preferences, ...partial } });
+    setStatus(t.preferenceSaved);
+  };
+
+  // Trigger the hidden file input to start an import flow.
+  const startImport = () => {
+    importInputRef.current?.click();
+  };
+
+  // Parse and validate a JSON file dropped into the import control.
+  const handleImport = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const content = await file.text();
+      const parsed = JSON.parse(content) as Partial<UserConfig>;
+      if (!parsed || typeof parsed !== "object") {
+        setStatus(t.importError);
+        return;
+      }
+
+      // Sanitize against the current config so missing keys are inherited instead of dropped.
+      onConfigChange(sanitizeConfig(parsed, config));
+      setStatus(t.importOk);
+    } catch (error) {
+      console.error("Import failed", error);
+      setStatus(t.importError);
+    } finally {
+      // Reset the input to allow re-importing the same file later.
+      event.target.value = "";
+    }
+  };
+
+  // Download the current config as a JSON file for easy sharing or backups.
+  const handleExport = () => {
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "photon-config.json";
+    link.click();
+    URL.revokeObjectURL(url);
+    setStatus(t.exportedNotice);
+  };
+
+  return (
+    <section>
+      <h2>{t.title}</h2>
+      <p className="muted">{t.subtitle}</p>
+
+      <div className="favorites-grid">
+        <div className="card">
+          <div className="card-header">
+            <div>
+              <h3>{t.formTitle}</h3>
+              <p className="muted">{t.formSubtitle}</p>
+            </div>
+          </div>
+          <div className="card-body">
+            <form className="favorites-form" onSubmit={handleSubmit}>
+              <label className="field">
+                <span className="label">{t.nameLabel}</span>
+                <input
+                  type="text"
+                  value={favoriteName}
+                  onChange={(event) => setFavoriteName(event.target.value)}
+                  placeholder={t.namePlaceholder}
+                />
+              </label>
+              <label className="field">
+                <span className="label">{t.folderLabel}</span>
+                <input
+                  type="text"
+                  value={favoriteFolder}
+                  onChange={(event) => setFavoriteFolder(event.target.value)}
+                  placeholder="~/Documents/Scans"
+                />
+              </label>
+              <div className="favorites-row">
+                <label className="field">
+                  <span className="label">{t.formatLabel}</span>
+                  <select value={favoriteFormat} onChange={(event) => setFavoriteFormat(event.target.value as Favorite["format"])}>
+                    <option value="PDF">PDF</option>
+                    <option value="PNG">PNG</option>
+                    <option value="JPG">JPG</option>
+                  </select>
+                </label>
+                <label className="field">
+                  <span className="label">{t.profileLabel}</span>
+                  <input
+                    type="text"
+                    value={favoriteProfile}
+                    onChange={(event) => setFavoriteProfile(event.target.value)}
+                    placeholder={t.profilePlaceholder}
+                  />
+                </label>
+              </div>
+              <div className="favorites-actions">
+                <button className="primary" type="submit">
+                  {editingId ? t.updateButton : t.saveButton}
+                </button>
+                <button className="ghost" type="button" onClick={resetForm}>
+                  {t.resetButton}
+                </button>
+              </div>
+            </form>
+
+            <div className="favorites-status">{status ?? t.statusIdle}</div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <div>
+              <h3>{t.listTitle}</h3>
+              <p className="muted">{t.listSubtitle}</p>
+            </div>
+            <div className="chip-group">
+              <button className="chip" type="button" onClick={handleExport}>
+                {t.exportButton}
+              </button>
+              <button className="chip" type="button" onClick={startImport}>
+                {t.importButton}
+              </button>
+              <input
+                type="file"
+                ref={importInputRef}
+                accept="application/json"
+                className="hidden-input"
+                onChange={handleImport}
+              />
+            </div>
+          </div>
+
+          <div className="card-body">
+            {config.favorites.length === 0 ? (
+              <p className="muted">{t.empty}</p>
+            ) : (
+              <ul className="favorites-list">
+                {config.favorites.map((fav) => (
+                  <li key={fav.id} className="favorites-item">
+                    <div>
+                      <strong>{fav.name}</strong>
+                      <p className="muted">{fav.folder}</p>
+                      <div className="pill pill-info">{fav.format}</div>
+                      <div className="pill pill-ok">{fav.profile}</div>
+                    </div>
+                    <div className="chip-group">
+                      <button className="chip chip-outline" type="button" onClick={() => handleEdit(fav)}>
+                        {t.editButton}
+                      </button>
+                      <button className="chip chip-outline" type="button" onClick={() => handleDelete(fav.id)}>
+                        {t.deleteButton}
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header">
+          <div>
+            <h3>{t.preferencesTitle}</h3>
+            <p className="muted">{t.preferencesSubtitle}</p>
+          </div>
+        </div>
+        <div className="card-body">
+          <div className="favorites-row">
+            <label className="field">
+              <span className="label">{t.defaultFormatLabel}</span>
+              <select
+                value={config.preferences.defaultFormat}
+                onChange={(event) => updatePreferences({ defaultFormat: event.target.value as Favorite["format"] })}
+              >
+                <option value="PDF">PDF</option>
+                <option value="PNG">PNG</option>
+                <option value="JPG">JPG</option>
+              </select>
+            </label>
+            <label className="field">
+              <span className="label">{t.defaultProfileLabel}</span>
+              <input
+                type="text"
+                value={config.preferences.defaultProfile}
+                onChange={(event) => updatePreferences({ defaultProfile: event.target.value })}
+                placeholder={t.profilePlaceholder}
+              />
+            </label>
+            <label className="field">
+              <span className="label">{t.namingPatternLabel}</span>
+              <input
+                type="text"
+                value={config.preferences.namingPattern}
+                onChange={(event) => updatePreferences({ namingPattern: event.target.value })}
+                placeholder="{date}-{counter}-{profile}"
+              />
+            </label>
+          </div>
+          <p className="muted">{t.persistenceHint}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function App() {
   // Frontend-only flag for the status pill until the webcam is wired.
   const [deviceReady] = useState(false);
@@ -272,6 +672,8 @@ function App() {
   const [runtimeInfo, setRuntimeInfo] = useState<RuntimeInfo | null>(null);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   const [loadingDiagnostics, setLoadingDiagnostics] = useState(false);
+  // Config (favorites + preferences) persisted locally to mimic the future Rust storage.
+  const [userConfig, setUserConfig] = useState<UserConfig>(readStoredConfig);
   // Track which UX mock screen is shown; this will later map to real routes/states.
   const [activeScreen, setActiveScreen] = useState<ScreenKey>("capture");
 
@@ -310,6 +712,12 @@ function App() {
     [t],
   );
   const namingPreview = useMemo(() => `2024-05-04-1430-${t.uiPlayground.capture.profileDefault}-001.pdf`, [t]);
+
+  // Persist configuration anytime it changes to keep the UI and localStorage aligned.
+  useEffect(() => {
+    if (typeof localStorage === "undefined") return;
+    localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(userConfig));
+  }, [userConfig]);
 
   return (
     <div className="page">
@@ -381,6 +789,8 @@ function App() {
         {activeScreen === "pages" && <PageRail t={t.uiPlayground.pages} pages={mockPages} />}
         {activeScreen === "export" && <ExportPanel t={t.uiPlayground.export} namingPreview={namingPreview} />}
       </section>
+
+      <FavoritesConfigPanel t={t.favorites} config={userConfig} onConfigChange={setUserConfig} />
 
       <section>
         <h2>{t.steps.title}</h2>
