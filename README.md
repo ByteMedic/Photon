@@ -1,6 +1,6 @@
 # Photon - Scanner via webcam
 
-Application de scan par webcam qui detecte automatiquement le document, redresse l'image, rogne les bords et exporte en PDF, PNG ou JPG. L'utilisateur peut choisir un dossier d'export, definir des favoris (chemin + format) et beneficier d'un traitement d'image automatique pour ameliore contraste et lisibilite. Les scans peuvent contenir plusieurs pages.
+Application desktop (Tauri + Rust, frontend React) de scan par webcam, multi-plateforme (Windows, Linux, macOS). Elle detecte automatiquement le document, redresse l'image, rogne les bords et exporte en PDF, PNG ou JPG. L'utilisateur peut choisir un dossier d'export, definir des favoris (chemin + format) et beneficier d'un traitement d'image automatique pour ameliore contraste et lisibilite. Les scans peuvent contenir plusieurs pages. Projet open-source sous licence Apache-2.0, libre d'usage commercial, avec dependances permissives uniquement.
 
 ## Fonctionnalites ciblees
 - Acquisition par webcam avec apercu en temps reel, detection du document et redressement automatique.
@@ -10,7 +10,6 @@ Application de scan par webcam qui detecte automatiquement le document, redresse
 - Export en PDF (multi-page), PNG ou JPG avec parametres de resolution/qualite.
 - Favoris de destinations: chaque favori associe dossier, format et nommage par defaut.
 - Configuration des formats par defaut, dossier courant, et profils de scan (ex: "texte", "photo").
-- Historique recent (optionnel) pour retrouver les derniers exports.
 
 ## Points a anticiper
 - Securite/vie privee: traitement local uniquement, pas d'envoi reseau; clarifier permissions webcam.
@@ -23,12 +22,13 @@ Application de scan par webcam qui detecte automatiquement le document, redresse
 - Internationalisation: textes previsibles pour traduction si besoin.
 - OCR (optionnel): export avec texte extrait pour recherche; a cadrer selon perimetre.
 
-## Choix techniques a arbitrer
-- Cible: application desktop (Electron/Tauri) pour acces fichiers natif et webcam; ou web app (PWA) si l'usage navigateur suffit.
-- Traitement d'image: OpenCV (WASM ou natif), ou pipelines maison pour detection de contours + perspective + filtres (threshold adaptatif, CLAHE).
-- Generation PDF: moteur cote client (pdf-lib, pdfkit) ou via binding natif si besoin de compression plus fine.
-- Stockage local: fichiers config JSON + chemin utilisateur; ou base locale (SQLite/IndexedDB selon la plateforme).
-- Tests: mocks de camera (videos d'exemple), golden images pour verifier redressement et filtres.
+## Choix techniques retenus / a arbitrer
+- Conteneur: application desktop Tauri (backend Rust, frontend React) pour acces natif fichiers/webcam, builds Windows/Linux/macOS.
+- Traitement d'image: stack Rust native `imageproc` + `image` pour filtres/contours + `fast_image_resize` pour le redimensionnement performant; viser detection/redressement document en Rust pur, avec fallback OpenCV wasm/natif uniquement si indispensable.
+- Generation PDF: `pdf-writer` (MIT) pour composer des PDFs multi-pages a partir d'images (simple et performant).
+- Stockage local: configs via `serde` + TOML/JSON et localisation des dossiers via `directories`/`dirs`; etendre a SQLite (`rusqlite`) seulement si besoin de schema plus riche.
+- Licences: dependances permissives (MIT/Apache/BSD), pas de composants restreignant l'usage commercial.
+- Tests: mocks de camera (videos d'exemple), golden images pour verifier redressement et filtres; harness Tauri pour tests integr.
 
 ## Flux utilisateur cible
 1) Lancer l'appli et choisir un profil/favori ou un format et dossier manuels.  
@@ -44,3 +44,6 @@ Application de scan par webcam qui detecte automatiquement le document, redresse
 - Systemes de favoris et de profils simples (format + dossier + nommage auto).
 - Tests basiques sur detection/traitement et sur le flux multi-pages.
 - Documentation utilisateur succincte et guide de configuration.
+
+## Licence
+- Apache-2.0 (voir le fichier LICENSE).

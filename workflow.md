@@ -4,14 +4,14 @@
    - Finaliser user stories (mono/multi-page, favoris, nommage auto, filtres, offline).
    - Lister contraintes: OS cibles, acces webcam, limites de stockage, perf attendues.
 2) Choix architecture et pile
-   - Decider desktop (Electron/Tauri) ou PWA; valider impact sur acces fichiers et webcam.
-   - Choisir libs: detection/vision (OpenCV wasm/natif), generation PDF, stockage local.
+   - Architecture desktop Tauri: frontend React + backend Rust (commandes et traitement).
+   - Libs retenues: vision Rust native (`imageproc` + `image` + `fast_image_resize`), PDF (`pdf-writer`), config (`serde` + TOML/JSON + `directories`/`dirs`); fallback wasm/natif OpenCV seulement si indispensable. Licences permissives (MIT/Apache/BSD) uniquement.
 3) Maquettes UX et parcours
    - Flots: capture, recadrage manuel, multi-page (ajout, ordre, suppression), favoris/config.
    - Ecrans d'erreur/permission webcam et etat sans camera.
 4) Mise en place projet
-   - Init repo, tooling (format, lint, tests), CI basique.
-   - Scaffold app (ex: Vite + React ou stack retenue), theming minimal.
+   - Init repo, licence Apache-2.0, tooling (format, lint, tests), CI basique.
+   - Scaffold Tauri + React (frontend) et commandes Rust, theming minimal.
 5) Gestion webcam et permissions
    - Acces video, selection de camera, messages d'autorisation, mock video pour tests.
 6) Detection et redressement
@@ -30,16 +30,16 @@
     - Creation/edition/suppression de favoris (dossier + format + profil).
     - Stockage local des prefs, import/export de la config.
 11) Robustesse et securite
-    - Nettoyage fichiers temporaires, gestion faible espace disque, logs debug.
-    - Garantir traitement local (pas d'envoi reseau), message sur vie privee.
+   - Nettoyage fichiers temporaires, gestion faible espace disque, logs debug.
+   - Garantir traitement local (pas d'envoi reseau), message sur vie privee.
 12) Accessibilite et UX finale
     - Raccourcis clavier, focus visibles, feedback visuel/sonore lors de la capture.
     - Internationalisation pretee (fichiers de traduction), theming basique.
 13) Tests et QA
-    - Tests unitaires (vision, filtres), tests d'integration sur flux multi-page.
-    - Jeux d'images de reference; tests manuels avec webcams reelles.
+   - Tests unitaires (vision, filtres), tests d'integration sur flux multi-page.
+   - Jeux d'images de reference; tests manuels avec webcams reelles.
 14) Packaging et distribution
-    - Build pour OS cibles; signature si necessaire; configuration auto-update si retenu.
+    - Build Tauri pour Windows/Linux/macOS; signature/code signing si necessaire; auto-update via Tauri si retenu.
 15) Documentation
     - Guide utilisateur (install, capture, export), FAQ permissions webcam.
     - Notes techniques (pipeline image, architecture) et checklists de regression.
