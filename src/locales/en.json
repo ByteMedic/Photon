@@ -39,6 +39,67 @@
       }
     ]
   },
+  "uiPlayground": {
+    "title": "UX screens (static mock)",
+    "subtitle": "Layout of capture/crop/multi-page/export before wiring the webcam and backend state.",
+    "tabs": {
+      "capture": "Capture",
+      "crop": "Crop",
+      "pages": "Multi-page",
+      "export": "Export"
+    },
+    "capture": {
+      "previewTitle": "Capture workspace",
+      "previewSubtitle": "Live preview with detection frame and quick controls.",
+      "previewPlaceholder": "Camera feed placeholder",
+      "previewStatus": "Preview stubbed",
+      "qualityLabel": "Quality",
+      "favoriteLabel": "Favorite",
+      "captureAction": "Capture page",
+      "retakeAction": "Recapture",
+      "profileTitle": "Profiles",
+      "profileSubtitle": "Text / Photo presets kept on the right for quick access.",
+      "profileHint": "Contrast + denoise",
+      "profileApply": "Apply",
+      "profileDefault": "Text profile",
+      "profilePhoto": "Photo profile",
+      "statusTitle": "States",
+      "statusCamera": "Camera detection",
+      "statusPermission": "Permissions",
+      "statusPending": "pending",
+      "statusInfo": "OS prompt first"
+    },
+    "crop": {
+      "title": "Manual crop",
+      "subtitle": "Drag handles to align corners before validating.",
+      "rotate": "Rotate 90°",
+      "profile": "Apply profile",
+      "placeholder": "Captured page",
+      "apply": "Apply crop",
+      "cancel": "Cancel"
+    },
+    "pages": {
+      "title": "Multi-page rail",
+      "subtitle": "Reorder by drag-and-drop; per-page recapture/delete.",
+      "addPage": "Add page",
+      "retake": "Recapture",
+      "delete": "Delete",
+      "orderHint": "Drag cards to change the order.",
+      "estimate": "Est. 8.4 MB / 5 pages",
+      "pageLabel": "Page"
+    },
+    "export": {
+      "title": "Export dialog",
+      "subtitle": "Format, quality, destination and auto-naming preview.",
+      "formatLabel": "Format",
+      "qualityLabel": "Quality",
+      "destinationLabel": "Destination",
+      "namingLabel": "Auto-naming",
+      "previewLabel": "Preview",
+      "export": "Export document",
+      "cancel": "Cancel"
+    }
+  },
   "steps": {
     "title": "Next steps",
     "items": [

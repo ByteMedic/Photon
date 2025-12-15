@@ -39,6 +39,67 @@
       }
     ]
   },
+  "uiPlayground": {
+    "title": "Écrans UX (maquette statique)",
+    "subtitle": "Mise en page capture/recadrage/multi-page/export avant de brancher la webcam et le backend.",
+    "tabs": {
+      "capture": "Capture",
+      "crop": "Recadrage",
+      "pages": "Multi-page",
+      "export": "Export"
+    },
+    "capture": {
+      "previewTitle": "Espace de capture",
+      "previewSubtitle": "Aperçu avec cadre de détection et commandes rapides.",
+      "previewPlaceholder": "Flux caméra (placeholder)",
+      "previewStatus": "Preview fictive",
+      "qualityLabel": "Qualité",
+      "favoriteLabel": "Favori",
+      "captureAction": "Capturer la page",
+      "retakeAction": "Recapturer",
+      "profileTitle": "Profils",
+      "profileSubtitle": "Presets Texte / Photo à droite pour un accès direct.",
+      "profileHint": "Contraste + débruitage",
+      "profileApply": "Appliquer",
+      "profileDefault": "Profil texte",
+      "profilePhoto": "Profil photo",
+      "statusTitle": "États",
+      "statusCamera": "Détection caméra",
+      "statusPermission": "Permissions",
+      "statusPending": "en attente",
+      "statusInfo": "Consentement OS d’abord"
+    },
+    "crop": {
+      "title": "Recadrage manuel",
+      "subtitle": "Glisser les poignées pour aligner les coins puis valider.",
+      "rotate": "Rotation 90°",
+      "profile": "Appliquer un profil",
+      "placeholder": "Page capturée",
+      "apply": "Valider le recadrage",
+      "cancel": "Annuler"
+    },
+    "pages": {
+      "title": "Rail multi-page",
+      "subtitle": "Réordonner par glisser-déposer; recapture/suppression par page.",
+      "addPage": "Ajouter une page",
+      "retake": "Recapturer",
+      "delete": "Supprimer",
+      "orderHint": "Glisser les cartes pour changer l’ordre.",
+      "estimate": "Est. 8,4 Mo / 5 pages",
+      "pageLabel": "Page"
+    },
+    "export": {
+      "title": "Dialogue d’export",
+      "subtitle": "Format, qualité, destination et aperçu du nommage auto.",
+      "formatLabel": "Format",
+      "qualityLabel": "Qualité",
+      "destinationLabel": "Destination",
+      "namingLabel": "Nommage auto",
+      "previewLabel": "Aperçu",
+      "export": "Exporter le document",
+      "cancel": "Annuler"
+    }
+  },
   "steps": {
     "title": "Prochaines étapes",
     "items": [

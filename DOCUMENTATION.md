@@ -11,6 +11,7 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
 ## Backlog cible a materialiser dans le code
 - [ ] Rust backend: commandes de capture webcam, detection/redressement, filtres, export PDF/PNG/JPG (stubs exposes pour le moment).
 - [ ] Frontend React: UI de capture (etat sans camera, selection camera), recadrage manuel, flux multi-page.
+- [x] Maquette UX statique (React) pour les ecrans capture/recadrage/multi-page/export avec bascule par onglets.
 - [ ] Configuration/persistance: chargement/sauvegarde des favoris, dossiers et profils.
 - [x] Observabilite: logger minimal en place (console + fichier). Reste a tracer le pipeline (capture/detection/export) avec contexte (session, device).
 - [ ] Tests: golden images pour detection/redressement, mocks video pour tests d'integration.
@@ -43,6 +44,11 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
 - Les clefs doivent rester strictement synchronisees entre les deux fichiers; `src/App.tsx` typage les utilise pour empecher les oublis.
 - Le composant `App` expose un selecteur de langue dans l'en-tete. Toute nouvelle chaine d'UI doit etre ajoutee dans les deux JSON puis referencee depuis `App` (ou un composant dedie) sans texte en dur.
 - Penser a commenter les usages sensibles (ex: textes dynamiques lies aux diagnostics) pour guider les nouveaux contributeurs sur l'emplacement des traductions.
+
+## Maquette d'ecrans (React)
+- Les ecrans capture/recadrage/multi-page/export sont maquettes dans `src/App.tsx` via un mini tab-switcher (`ScreenTab`) et des composants dedies (`CaptureScreen`, `CropScreen`, `PageRail`, `ExportPanel`).
+- Les traductions de cette maquette sont sous la clef `uiPlayground` dans `src/locales/en.json` et `src/locales/fr.json`; ajouter/mettre a jour les chaines dans les deux fichiers avant d'etendre la maquette.
+- Les donnees affichees sont des placeholders stables (useMemo) afin de conserver le layout et guider le cablage futur (webcam Tauri, recadrage reel, rail multi-page). Remplacer progressivement ces mocks par l'etat applicatif reel.
 
 ## Icônes de l'application
 - Source actuelle: `src-tauri/icons/icon.png` (placeholder genere).
