@@ -33,8 +33,9 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
   - `info!` au debut/fin de chaque etape (capture, detection, export).
   - `debug!` pour les parametres (device, resolution, profil, dpi), stats (temps, score detection), tailles fichiers.
 - Commande utilitaire `log_path` (Tauri) pour exposer le chemin du log a l'UI de diagnostic (frontend peut appeler `invoke("log_path")`).
-- Commande `runtime_info` (stub) renvoie `webcam_detected` et `active_profile`; a remplacer par l'etat reel (device detecte, profil choisi).
-- UI frontend: panneau "Diagnostic developpeur" (voir `src/App.tsx`) qui appelle `invoke("log_path")` + `invoke("runtime_info")` et affiche le chemin du fichier de log, l'etat webcam et le profil actif. Bouton a re-utiliser plus tard pour d'autres diagnostics (ex: device courant).
+- Commande `runtime_info` interroge maintenant `nokhwa` (`ApiBackend::Auto`) pour detecter la presence d'au moins une webcam **sans la reserver** et lit le profil actif depuis le fichier de configuration JSON. En cas d'erreur, un etat degrade est renvoye (webcam_detected=false, profil `None`) mais les logs sont renseignes.
+- Fichier de configuration runtime: `config.json` dans le dossier donnees applicatif (ex: `~/.local/share/com.photon/Photon/config.json`). Structure minimale: `{ "active_profile": "default" }`. Si le fichier est absent, le profil `default` est renvoye par defaut.
+- UI frontend: panneau "Diagnostic developpeur" (voir `src/App.tsx`) appelle `invoke("log_path")` + `invoke("runtime_info")` et affiche le chemin du fichier de log, l'etat webcam et le profil actif. Bouton a re-utiliser plus tard pour d'autres diagnostics (ex: device courant).
 
 ## Internationalisation (frontend)
 - Langues supportees : **anglais (par defaut)** et **francais**, via des fichiers JSON dans `src/locales/en.json` et `src/locales/fr.json`.

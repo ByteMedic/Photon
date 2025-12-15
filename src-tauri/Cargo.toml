@@ -21,6 +21,7 @@ pdf-writer = "0.10"
 directories = "5"
 log = "0.4"
 simplelog = "0.12"
+nokhwa = { version = "0.10", features = ["input-native"] }
 
 [profile.release]
 opt-level = "s"
