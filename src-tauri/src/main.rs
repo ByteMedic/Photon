@@ -3,7 +3,9 @@
 use nokhwa::utils::ApiBackend;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::time::{Duration, SystemTime};
+use sysinfo::{DiskExt, RefreshKind, System, SystemExt};
 
 // Commandes Rust -> frontend React. Ajouter ici les traitements image/exports.
 // TODO(scanner): remplacer les stubs par les implementations definitives (capture, detection, export).
@@ -58,6 +60,28 @@ struct RuntimeInfo {
 struct AppConfig {
     active_profile: Option<String>,
 }
+
+/// Rapport de nettoyage pour tracer ce qui a ete supprime dans le dossier temporaire.
+#[derive(Default, Serialize)]
+struct CleanupReport {
+    cleaned_entries: usize,
+    reclaimed_bytes: u64,
+}
+
+/// Etat de robustesse global expose au frontend pour alerter l'utilisateur en cas de faible espace disque.
+#[derive(Serialize)]
+struct HousekeepingStatus {
+    available_bytes: u64,
+    threshold_bytes: u64,
+    low_space: bool,
+    temp_dir: String,
+    cleanup: CleanupReport,
+}
+
+// Espace disque minimal recommande avant capture/export pour respecter la spec (<200 Mo => alerte).
+const MIN_DISK_SPACE_BYTES: u64 = 200 * 1024 * 1024;
+// Durée maximale de retention des fichiers temporaires generes pendant une session.
+const TEMP_RETENTION_HOURS: u64 = 24;
 
 #[tauri::command]
 fn runtime_info() -> Result<RuntimeInfo, String> {
@@ -165,6 +189,168 @@ fn load_active_profile() -> anyhow::Result<Option<String>> {
         .or_else(|| Some("default".to_string())))
 }
 
+/// Retourne le dossier temporaire dedie a l'application. Il est separe du dossier
+/// de configuration pour eviter de laisser des artefacts volumineux a cote des
+/// preferences utilisateur.
+fn temporary_workspace_dir() -> anyhow::Result<PathBuf> {
+    let temp_dir = app_data_dir()?.join("tmp");
+    fs::create_dir_all(&temp_dir)?;
+    Ok(temp_dir)
+}
+
+/// Calcule la taille totale d'un dossier (fichiers + sous-dossiers) pour tracer ce que
+/// le nettoyage permet de liberer. Cette fonction reste volontairement iterative pour
+/// eviter un dépassement de pile en cas d'arborescences profondes.
+fn compute_dir_size(root: &Path) -> anyhow::Result<u64> {
+    let mut total = 0u64;
+    let mut stack = vec![root.to_path_buf()];
+
+    while let Some(path) = stack.pop() {
+        for entry in fs::read_dir(&path)? {
+            let entry = entry?;
+            let metadata = entry.metadata()?;
+            if metadata.is_dir() {
+                stack.push(entry.path());
+            } else {
+                total = total.saturating_add(metadata.len());
+            }
+        }
+    }
+
+    Ok(total)
+}
+
+/// Supprime les fichiers temporaires plus anciens que `TEMP_RETENTION_HOURS` afin de ne
+/// pas saturer le disque. Les erreurs sont loggees mais l'execution se poursuit pour
+/// nettoyer un maximum d'entrees.
+fn cleanup_temporary_files() -> anyhow::Result<CleanupReport> {
+    let temp_dir = temporary_workspace_dir()?;
+    let cutoff = SystemTime::now()
+        .checked_sub(Duration::from_secs(TEMP_RETENTION_HOURS * 3600))
+        .ok_or_else(|| anyhow::anyhow!("system time overflow when computing cutoff"))?;
+
+    let mut report = CleanupReport::default();
+
+    for entry in fs::read_dir(&temp_dir)? {
+        let entry = match entry {
+            Ok(item) => item,
+            Err(err) => {
+                log::error!("cleanup: unable to read entry in {:?}: {err}", temp_dir);
+                continue;
+            }
+        };
+
+        let path = entry.path();
+        let metadata = match entry.metadata() {
+            Ok(meta) => meta,
+            Err(err) => {
+                log::error!("cleanup: unable to read metadata for {:?}: {err}", path);
+                continue;
+            }
+        };
+
+        // En cas d'absence d'info de modification, on prefere purger pour rester safe.
+        let modified = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
+        if modified > cutoff {
+            continue;
+        }
+
+        let size = if metadata.is_dir() {
+            match compute_dir_size(&path) {
+                Ok(value) => value,
+                Err(err) => {
+                    log::error!("cleanup: unable to measure dir {:?}: {err}", path);
+                    0
+                }
+            }
+        } else {
+            metadata.len()
+        };
+
+        let removal_result = if metadata.is_dir() {
+            fs::remove_dir_all(&path)
+        } else {
+            fs::remove_file(&path)
+        };
+
+        match removal_result {
+            Ok(_) => {
+                report.cleaned_entries += 1;
+                report.reclaimed_bytes = report.reclaimed_bytes.saturating_add(size);
+                log::info!("cleanup: removed {:?} ({} bytes)", path, size);
+            }
+            Err(err) => log::error!("cleanup: unable to remove {:?}: {err}", path),
+        }
+    }
+
+    Ok(report)
+}
+
+/// Mesure l'espace disque disponible sur le volume qui contient `path`. En cas d'absence
+/// de correspondance, on renvoie une erreur explicite pour faciliter le debuggage.
+fn available_disk_space(path: &Path) -> anyhow::Result<u64> {
+    let mut system = System::new_with_specifics(RefreshKind::new().with_disks_list().with_disks());
+    system.refresh_disks_list();
+    system.refresh_disks();
+
+    let mount = path
+        .ancestors()
+        .find_map(|ancestor| {
+            system
+                .disks()
+                .iter()
+                .find(|disk| ancestor.starts_with(disk.mount_point()))
+        })
+        .ok_or_else(|| anyhow::anyhow!("no disk found for path {:?}", path))?;
+
+    Ok(mount.available_space())
+}
+
+/// Execute le nettoyage des fichiers temporaires et retourne un etat global sur l'espace disque
+/// afin d'alimenter l'UI et les logs. Cette commande pourra etre appelee au startup et a la demande.
+#[tauri::command]
+fn housekeeping() -> Result<HousekeepingStatus, String> {
+    log::info!("housekeeping:start");
+
+    temporary_workspace_dir()
+        .map_err(|err| {
+            log::error!("housekeeping:init_temp_dir_failed: {err}");
+            err.to_string()
+        })
+        .and_then(|temp_dir| {
+            let cleanup = cleanup_temporary_files().map_err(|err| {
+                log::error!("housekeeping:cleanup_failed: {err}");
+                err.to_string()
+            })?;
+
+            let available_bytes = available_disk_space(&temp_dir).map_err(|err| {
+                log::error!("housekeeping:disk_probe_failed: {err}");
+                err.to_string()
+            })?;
+
+            let low_space = available_bytes <= MIN_DISK_SPACE_BYTES;
+            if low_space {
+                log::warn!(
+                    "housekeeping: low disk space detected: available {} bytes, threshold {} bytes",
+                    available_bytes, MIN_DISK_SPACE_BYTES
+                );
+            } else {
+                log::info!(
+                    "housekeeping: available space {} bytes on temp volume (threshold {})",
+                    available_bytes, MIN_DISK_SPACE_BYTES
+                );
+            }
+
+            Ok(HousekeepingStatus {
+                available_bytes,
+                threshold_bytes: MIN_DISK_SPACE_BYTES,
+                low_space,
+                temp_dir: temp_dir.to_string_lossy().to_string(),
+                cleanup,
+            })
+        })
+}
+
 /// Détecte la présence d'au moins une webcam en interrogeant les périphériques.
 /// On utilise `nokhwa` avec le backend automatique pour rester cross-plateforme.
 fn detect_webcam_presence() -> anyhow::Result<bool> {
@@ -183,11 +369,17 @@ fn main() {
             capture_frame_stub,
             detect_document_stub,
             export_pdf_stub,
-            runtime_info
+            runtime_info,
+            housekeeping
         ])
         .setup(|_app| {
             if let Err(err) = init_logger() {
                 eprintln!("Logger init error: {err}");
+            }
+            // Lancer un nettoyage proactif au demarrage afin de ne pas laisser l'espace disque
+            // se degrader entre deux sessions d'utilisation.
+            if let Err(err) = housekeeping() {
+                log::error!("startup: housekeeping failed: {err}");
             }
             // TODO(platform): verifier la presence d'une webcam et charger la configuration/favoris au demarrage.
             // TODO(diagnostics): enrichir le logger avec contexte (session, device) et telemetry locale (sans reseau).

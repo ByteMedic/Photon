@@ -49,9 +49,8 @@
     - [ ] Creation/edition/suppression de favoris (dossier + format + profil).
     - [ ] Stockage local des prefs, import/export de la config.
 11) Robustesse et securite
-    - [ ] Nettoyage fichiers temporaires, gestion faible espace disque.
+    - [x] Nettoyage fichiers temporaires, gestion faible espace disque.
     - [x] Logs debug (console + fichier) en place; tracer completement le pipeline capture/detection/export.
-    - [ ] Garantir traitement local (pas d'envoi reseau), message sur vie privee.
 12) Accessibilite et UX finale
     - [ ] Raccourcis clavier, focus visibles, feedback visuel/sonore lors de la capture.
     - [x] Internationalisation pretee (fichiers de traduction), theming basique.

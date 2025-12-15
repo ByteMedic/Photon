@@ -16,6 +16,7 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
 - [x] Observabilite: logger minimal en place (console + fichier). Reste a tracer le pipeline (capture/detection/export) avec contexte (session, device).
 - [ ] Tests: golden images pour detection/redressement, mocks video pour tests d'integration.
 - [ ] Packaging: regeneration des icones multi-tailles (voir section ci-dessous).
+- [x] Robustesse: commande `housekeeping` pour nettoyer les fichiers temporaires et surveiller l'espace disque.
 
 ## Logger minimal (Rust backend)
 - Initialisation dans `src-tauri/src/main.rs` (`init_logger`), lancee au startup Tauri.
@@ -38,6 +39,13 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
 - Implementation: `nokhwa` expose `query_devices` via le module `nokhwa::query` (version 0.10). Pensez a conserver cet import explicite si vous mettez a jour la dependance afin d'eviter les regressions de compilation.
 - Fichier de configuration runtime: `config.json` dans le dossier donnees applicatif (ex: `~/.local/share/com.photon/Photon/config.json`). Structure minimale: `{ "active_profile": "default" }`. Si le fichier est absent, le profil `default` est renvoye par defaut.
 - UI frontend: panneau "Diagnostic developpeur" (voir `src/App.tsx`) appelle `invoke("log_path")` + `invoke("runtime_info")` et affiche le chemin du fichier de log, l'etat webcam et le profil actif. Bouton a re-utiliser plus tard pour d'autres diagnostics (ex: device courant).
+
+## Robustesse / nettoyage disque
+- Commande Tauri `housekeeping` (Rust, `src-tauri/src/main.rs`) executant deux actions :
+  - purge des fichiers temporaires ages de plus de 24h dans le sous-dossier `tmp` du dossier applicatif ;
+  - mesure de l'espace disque disponible sur le volume cible et alerte si l'espace est inferieur a 200 Mo (alignement avec la contrainte produit).
+- La commande retourne une structure `HousekeepingStatus` (JSON) contenant `available_bytes`, `threshold_bytes`, `low_space`, `temp_dir` et un rapport `cleanup` (`cleaned_entries`, `reclaimed_bytes`).
+- Le nettoyage est invoque automatiquement au startup Tauri (voir `setup` dans `main.rs`) et peut etre declenche a la demande via `invoke("housekeeping")` depuis le frontend ou des tests.
 
 ## Internationalisation (frontend)
 - Langues supportees : **anglais (par defaut)** et **francais**, via des fichiers JSON dans `src/locales/en.json` et `src/locales/fr.json`.
