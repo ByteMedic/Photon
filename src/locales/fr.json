@@ -53,10 +53,28 @@
       "previewSubtitle": "Aperçu avec cadre de détection et commandes rapides.",
       "previewPlaceholder": "Flux caméra (placeholder)",
       "previewStatus": "Preview fictive",
+      "cameraLabel": "Caméra",
+      "cameraMissing": "Aucune caméra détectée",
+      "cameraPlaceholder": "Caméra sans nom",
+      "refreshCameras": "Rafraîchir les caméras",
       "qualityLabel": "Qualité",
       "favoriteLabel": "Favori",
       "captureAction": "Capturer la page",
       "retakeAction": "Recapturer",
+      "permission": {
+        "title": "Permissions",
+        "request": "Autoriser la caméra",
+        "useMock": "Utiliser la vidéo fictive",
+        "hint": "Si l’OS bloque l’accès, active la vidéo fictive pour continuer les tests.",
+        "prompt": "En attente du prompt système",
+        "granted": "Permission accordée",
+        "denied": "Permission refusée",
+        "error": "Erreur caméra",
+        "idle": "Permission en attente",
+        "blocked": "Le navigateur/OS a refusé l’accès caméra.",
+        "unsupported": "API caméra indisponible dans cet environnement.",
+        "mockUrl": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+      },
       "profileTitle": "Profils",
       "profileSubtitle": "Presets Texte / Photo à droite pour un accès direct.",
       "profileHint": "Contraste + débruitage",
@@ -67,7 +85,12 @@
       "statusCamera": "Détection caméra",
       "statusPermission": "Permissions",
       "statusPending": "en attente",
-      "statusInfo": "Consentement OS d’abord"
+      "statusReady": "prête",
+      "statusInfo": "Consentement OS d’abord",
+      "stream": {
+        "active": "Aperçu en cours",
+        "idle": "Flux non démarré"
+      }
     },
     "crop": {
       "title": "Recadrage manuel",

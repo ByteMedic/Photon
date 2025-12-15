@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
+import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import en from "./locales/en.json";
 import fr from "./locales/fr.json";
@@ -55,6 +56,8 @@ const DEFAULT_CONFIG: UserConfig = {
     namingPattern: "{date}-{counter}-{profile}",
   },
 };
+// Track the local permission and stream lifecycle in a readable manner.
+type PermissionState = "idle" | "prompt" | "granted" | "denied" | "error";
 
 // Runtime info returned by the Tauri backend (stubbed for now but typed here for clarity).
 type RuntimeInfo = {
@@ -169,10 +172,48 @@ function ScreenTab({
 function CaptureScreen({
   t,
   profileNames,
+  videoRef,
+  permissionState,
+  permissionError,
+  availableCameras,
+  selectedCameraId,
+  onSelectCamera,
+  onRequestAccess,
+  onToggleMock,
+  useMockVideo,
+  isStreamActive,
+  onRefreshDevices,
 }: {
   t: TranslationSchema["uiPlayground"]["capture"];
   profileNames: string[];
+  videoRef: RefObject<HTMLVideoElement>;
+  permissionState: PermissionState;
+  permissionError: string | null;
+  availableCameras: MediaDeviceInfo[];
+  selectedCameraId: string | null;
+  onSelectCamera: (id: string | null) => void;
+  onRequestAccess: () => void;
+  onToggleMock: (enabled: boolean) => void;
+  useMockVideo: boolean;
+  isStreamActive: boolean;
+  onRefreshDevices: () => void;
 }) {
+  // Human-friendly label to surface the current permission state to the user.
+  const permissionLabel = (() => {
+    if (permissionState === "granted") return t.permission.granted;
+    if (permissionState === "denied") return t.permission.denied;
+    if (permissionState === "error") return t.permission.error;
+    if (permissionState === "prompt") return t.permission.prompt;
+    return t.permission.idle;
+  })();
+
+  // Choose the pill color according to the risk level (green = OK, orange = needs attention, purple = info/default).
+  const permissionPillClass = (() => {
+    if (permissionState === "granted") return "pill-ok";
+    if (permissionState === "denied" || permissionState === "error") return "pill-warn";
+    return "pill-info";
+  })();
+
   return (
     <div className="workspace">
       <div className="preview-card">
@@ -181,10 +222,19 @@ function CaptureScreen({
             <h3>{t.previewTitle}</h3>
             <p>{t.previewSubtitle}</p>
           </div>
-          <div className="pill pill-info">{t.previewStatus}</div>
+          <div className={`pill ${permissionPillClass}`}>{permissionLabel}</div>
         </div>
         <div className="preview-body">
           <div className="placeholder-video">
+            {/* Real video element reused across states (real webcam stream or mocked media file). */}
+            <video
+              ref={videoRef}
+              className="webcam-preview"
+              autoPlay
+              playsInline
+              muted
+              aria-label={t.previewPlaceholder}
+            />
             <div className="detect-overlay" />
             <span className="placeholder-label">{t.previewPlaceholder}</span>
           </div>
@@ -197,6 +247,25 @@ function CaptureScreen({
               </div>
             </div>
             <div className="control-row">
+              <span className="label">{t.cameraLabel}</span>
+              <div className="camera-select-row">
+                <select
+                  value={selectedCameraId ?? ""}
+                  onChange={(event) => onSelectCamera(event.target.value || null)}
+                >
+                  {availableCameras.length === 0 && <option value="">{t.cameraMissing}</option>}
+                  {availableCameras.map((device) => (
+                    <option key={device.deviceId} value={device.deviceId}>
+                      {device.label || t.cameraPlaceholder}
+                    </option>
+                  ))}
+                </select>
+                <button className="ghost" onClick={onRefreshDevices}>
+                  {t.refreshCameras}
+                </button>
+              </div>
+            </div>
+            <div className="control-row">
               <span className="label">{t.favoriteLabel}</span>
               <div className="chip-group">
                 <button className="chip chip-outline">Workspace</button>
@@ -204,9 +273,28 @@ function CaptureScreen({
                 <button className="chip chip-outline">Receipts</button>
               </div>
             </div>
+            <div className="control-row">
+              <span className="label">{t.permission.title}</span>
+              <div className="chip-group">
+                <button className="chip chip-active" onClick={onRequestAccess}>
+                  {t.permission.request}
+                </button>
+                <button
+                  className={`chip ${useMockVideo ? "chip-active" : ""}`}
+                  onClick={() => onToggleMock(!useMockVideo)}
+                >
+                  {t.permission.useMock}
+                </button>
+              </div>
+              <p className="muted">{t.permission.hint}</p>
+              {permissionError && <p className="permission-error">{permissionError}</p>}
+            </div>
             <div className="primary-actions">
               <button className="primary">{t.captureAction}</button>
               <button className="ghost">{t.retakeAction}</button>
+            </div>
+            <div className="stream-status">
+              <span className="pill pill-info">{isStreamActive ? t.stream.active : t.stream.idle}</span>
             </div>
           </div>
         </div>
@@ -234,11 +322,13 @@ function CaptureScreen({
           <ul className="status-list">
             <li>
               <span>{t.statusCamera}</span>
-              <span className="pill pill-warn">{t.statusPending}</span>
+              <span className={`pill ${isStreamActive ? "pill-ok" : "pill-warn"}`}>
+                {isStreamActive ? t.statusReady : t.statusPending}
+              </span>
             </li>
             <li>
               <span>{t.statusPermission}</span>
-              <span className="pill pill-info">{t.statusInfo}</span>
+              <span className={`pill ${permissionPillClass}`}>{permissionLabel}</span>
             </li>
           </ul>
         </div>
@@ -784,8 +874,8 @@ function FavoritesConfigPanel({
 }
 
 function App() {
-  // Frontend-only flag for the status pill until the webcam is wired.
-  const [deviceReady] = useState(false);
+  // Track the real preview readiness instead of a static placeholder.
+  const [deviceReady, setDeviceReady] = useState(false);
   // Track the current UI language (default English as requested).
   const [locale, setLocale] = useState<Locale>("en");
   // Export options kept as state to let the playground demonstrate the expected UX.
@@ -808,9 +898,125 @@ function App() {
   const [userConfig, setUserConfig] = useState<UserConfig>(readStoredConfig);
   // Track which UX mock screen is shown; this will later map to real routes/states.
   const [activeScreen, setActiveScreen] = useState<ScreenKey>("capture");
+  // Keep the media stream in React state to clean it up between camera switches.
+  const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null);
+  // Cache the list of available cameras as soon as the browser exposes them.
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  // Surface the chosen camera so the selection dropdown stays controlled.
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  // Track permission state and errors to inform the user on the capture screen.
+  const [permissionState, setPermissionState] = useState<PermissionState>("idle");
+  const [permissionError, setPermissionError] = useState<string | null>(null);
+  // Opt-in flag: when enabled we play a demo clip instead of reserving a real webcam.
+  const [useMockVideo, setUseMockVideo] = useState(false);
+  // Video element ref reused across renders to attach the MediaStream.
+  const videoRef = useRef<HTMLVideoElement>(null);
+  // Keep an imperative ref to the last stream so the unmount cleanup always has the latest value.
+  const webcamStreamRef = useRef<MediaStream | null>(null);
 
   // Convenience accessor so the JSX reads like a server-rendered template.
   const t = translations[locale];
+
+  // Helper to stop every active track on the current stream to avoid leaks/crashes when switching devices.
+  const stopStream = (stream?: MediaStream | null) => {
+    const targetStream = stream ?? webcamStreamRef.current;
+    if (!targetStream) return;
+    targetStream.getTracks().forEach((track) => track.stop());
+  };
+
+  // Ask the browser for available cameras to populate the select dropdown.
+  const refreshCameras = async () => {
+    try {
+      // Some browsers require an initial getUserMedia call to reveal device labels; we rely on the permission flow for that.
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter((device) => device.kind === "videoinput");
+      setAvailableCameras(videoDevices);
+      // Select the first camera only when no explicit choice exists yet.
+      if (!selectedCameraId && videoDevices[0]) {
+        setSelectedCameraId(videoDevices[0].deviceId);
+      }
+    } catch (err) {
+      setPermissionState("error");
+      setPermissionError(String(err));
+    }
+  };
+
+  // Central function to request webcam access or fall back to the mock video clip.
+  const requestWebcamAccess = async (cameraId?: string) => {
+    // Reset transient error so a later success clears the message.
+    setPermissionError(null);
+    if (useMockVideo) {
+      // When mocking, we simply load a video URL and mark the stream as usable for UI purposes.
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+        videoRef.current.src = t.uiPlayground.capture.permission.mockUrl;
+        await videoRef.current.play();
+      }
+      setPermissionState("granted");
+      setDeviceReady(true);
+      stopStream();
+      setWebcamStream(null);
+      webcamStreamRef.current = null;
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setPermissionState("error");
+      setPermissionError(t.uiPlayground.capture.permission.unsupported);
+      return;
+    }
+
+    setPermissionState("prompt");
+    try {
+      // Always stop previous tracks to avoid multiple cameras fighting for resources.
+      stopStream();
+      const constraints: MediaStreamConstraints = {
+        video: cameraId ? { deviceId: { exact: cameraId } } : { facingMode: "environment" },
+        audio: false,
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.src = "";
+        await videoRef.current.play();
+      }
+      setWebcamStream(stream);
+      webcamStreamRef.current = stream;
+      setPermissionState("granted");
+      setDeviceReady(true);
+      await refreshCameras();
+    } catch (err) {
+      // Explicitly differentiate denied permission from generic failures to guide troubleshooting.
+      if (err instanceof DOMException && err.name === "NotAllowedError") {
+        setPermissionState("denied");
+        setPermissionError(t.uiPlayground.capture.permission.blocked);
+      } else {
+        setPermissionState("error");
+        setPermissionError(String(err));
+      }
+      setDeviceReady(false);
+      // Keep the previous stream cleared so the UI reflects the failure.
+      stopStream();
+      setWebcamStream(null);
+      webcamStreamRef.current = null;
+    }
+  };
+
+  // React to camera selection changes by restarting the stream only when a camera is selected.
+  useEffect(() => {
+    if (selectedCameraId) {
+      requestWebcamAccess(selectedCameraId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCameraId]);
+
+  // Refresh the device list on first render so the dropdown is immediately populated.
+  useEffect(() => {
+    refreshCameras();
+    // Stop tracks on unmount to avoid leaving the webcam ON when navigating away.
+    return () => stopStream();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Fetch both log path and runtime metadata in a single user action to help debugging.
   const fetchDiagnostics = async () => {
@@ -1017,7 +1223,25 @@ function App() {
         </div>
 
         {activeScreen === "capture" && (
-          <CaptureScreen t={t.uiPlayground.capture} profileNames={mockProfiles} />
+          <CaptureScreen
+            t={t.uiPlayground.capture}
+            profileNames={mockProfiles}
+            videoRef={videoRef}
+            permissionState={permissionState}
+            permissionError={permissionError}
+            availableCameras={availableCameras}
+            selectedCameraId={selectedCameraId}
+            onSelectCamera={(id) => setSelectedCameraId(id)}
+            onRequestAccess={() => requestWebcamAccess(selectedCameraId ?? undefined)}
+            onToggleMock={(enabled) => {
+              setUseMockVideo(enabled);
+              // Restart preview immediately with the chosen mode.
+              requestWebcamAccess(selectedCameraId ?? undefined);
+            }}
+            useMockVideo={useMockVideo}
+            isStreamActive={Boolean(webcamStream) || useMockVideo}
+            onRefreshDevices={refreshCameras}
+          />
         )}
         {activeScreen === "crop" && <CropScreen t={t.uiPlayground.crop} />}
         {activeScreen === "pages" && <PageRail t={t.uiPlayground.pages} pages={mockPages} />}

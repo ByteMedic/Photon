@@ -53,10 +53,28 @@
       "previewSubtitle": "Live preview with detection frame and quick controls.",
       "previewPlaceholder": "Camera feed placeholder",
       "previewStatus": "Preview stubbed",
+      "cameraLabel": "Camera",
+      "cameraMissing": "No camera detected",
+      "cameraPlaceholder": "Unnamed camera",
+      "refreshCameras": "Refresh cameras",
       "qualityLabel": "Quality",
       "favoriteLabel": "Favorite",
       "captureAction": "Capture page",
       "retakeAction": "Recapture",
+      "permission": {
+        "title": "Permissions",
+        "request": "Allow camera",
+        "useMock": "Use mock video",
+        "hint": "If the OS blocks access, try the mock clip to continue testing.",
+        "prompt": "Waiting for OS prompt",
+        "granted": "Permission granted",
+        "denied": "Permission denied",
+        "error": "Camera error",
+        "idle": "Awaiting permission",
+        "blocked": "The OS/browser refused camera access.",
+        "unsupported": "Camera APIs unavailable in this environment.",
+        "mockUrl": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+      },
       "profileTitle": "Profiles",
       "profileSubtitle": "Text / Photo presets kept on the right for quick access.",
       "profileHint": "Contrast + denoise",
@@ -67,7 +85,12 @@
       "statusCamera": "Camera detection",
       "statusPermission": "Permissions",
       "statusPending": "pending",
-      "statusInfo": "OS prompt first"
+      "statusReady": "ready",
+      "statusInfo": "OS prompt first",
+      "stream": {
+        "active": "Live preview ready",
+        "idle": "Stream not started"
+      }
     },
     "crop": {
       "title": "Manual crop",

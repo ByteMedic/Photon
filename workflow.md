@@ -32,7 +32,7 @@
    - [x] Init repo + licence Apache-2.0 + scripts npm de base (lint). Tests/CI a rajouter.
    - [x] Scaffold Tauri + React (frontend) et commandes Rust, theming minimal.
 5) Gestion webcam et permissions
-   - [ ] Acces video, selection de camera, messages d'autorisation, mock video pour tests.
+   - [x] Acces video, selection de camera, messages d'autorisation, mock video pour tests.
 6) Detection et redressement
    - [ ] Pipeline auto: detection contours/document, correction de perspective, capture automatique.
    - [ ] Mode recadrage manuel comme secours.

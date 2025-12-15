@@ -10,7 +10,7 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
 
 ## Backlog cible a materialiser dans le code
 - [ ] Rust backend: commandes de capture webcam, detection/redressement, filtres, export PDF/PNG/JPG (stubs exposes pour le moment).
-- [ ] Frontend React: UI de capture (etat sans camera, selection camera), recadrage manuel, flux multi-page.
+- [ ] Frontend React: UI de capture (etat sans camera, selection camera + mock video OK), recadrage manuel, flux multi-page.
 - [x] Maquette UX statique (React) pour les ecrans capture/recadrage/multi-page/export avec bascule par onglets.
 - [x] Configuration/persistance: chargement/sauvegarde des favoris, dossiers et profils (stockage local + import/export JSON).
 - [x] Observabilite: logger minimal en place (console + fichier). Reste a tracer le pipeline (capture/detection/export) avec contexte (session, device).
@@ -47,6 +47,17 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
   - mesure de l'espace disque disponible sur le volume cible et alerte si l'espace est inferieur a 200 Mo (alignement avec la contrainte produit).
 - La commande retourne une structure `HousekeepingStatus` (JSON) contenant `available_bytes`, `threshold_bytes`, `low_space`, `temp_dir` et un rapport `cleanup` (`cleaned_entries`, `reclaimed_bytes`).
 - Le nettoyage est invoque automatiquement au startup Tauri (voir `setup` dans `main.rs`) et peut etre declenche a la demande via `invoke("housekeeping")` depuis le frontend ou des tests.
+## Flux webcam (frontend)
+- La maquette capture integre maintenant un **vrai lecteur video**. Le composant `CaptureScreen` recupere le `videoRef` et les callbacks pour:
+  - lister les cameras (`refreshCameras` via `enumerateDevices`),
+  - lancer un flux reel (`requestWebcamAccess` via `getUserMedia`),
+  - activer un **mock video** (clip `flower.mp4` MDN) si l'environnement bloque la webcam.
+- Etats exposes dans `App`:
+  - `permissionState` (`idle | prompt | granted | denied | error`) et `permissionError` pour piloter les pills et messages d'erreur utilisateurs,
+  - `availableCameras` + `selectedCameraId` pour le selecteur de camera,
+  - `useMockVideo` pour switcher entre flux reel et clip de test sans reserver la webcam.
+- Nettoyage: `stopStream` ferme toutes les pistes actives (utilise `webcamStreamRef` pour garantir un cleanup meme sur unmount).
+- UX: le panneau lateral affiche l'etat permission/camera en direct et le bandeau haut de la page passe en "Webcam ready" quand la permission est accordee ou quand le mock est actif.
 
 ## Internationalisation (frontend)
 - Langues supportees : **anglais (par defaut)** et **francais**, via des fichiers JSON dans `src/locales/en.json` et `src/locales/fr.json`.
