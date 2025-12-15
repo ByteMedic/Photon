@@ -1,8 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-// NOTE(scanner): `query_devices` est expose via le module `query` dans nokhwa 0.10.
-// Le placer explicitement ici evite les imports cassés lors des mises à jour.
-use nokhwa::query::query_devices;
 use nokhwa::utils::ApiBackend;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -171,9 +168,9 @@ fn load_active_profile() -> anyhow::Result<Option<String>> {
 /// Détecte la présence d'au moins une webcam en interrogeant les périphériques.
 /// On utilise `nokhwa` avec le backend automatique pour rester cross-plateforme.
 fn detect_webcam_presence() -> anyhow::Result<bool> {
-    // `query_devices` ne réserve pas la caméra : on peut l'appeler en toute sécurité
+    // `nokhwa::query` ne réserve pas la caméra : on peut l'appeler en toute sécurité
     // au démarrage pour exposer un état rapide au frontend.
-    let cameras = query_devices(ApiBackend::Auto)?;
+    let cameras = nokhwa::query(ApiBackend::Auto)?;
     Ok(!cameras.is_empty())
 }
 
