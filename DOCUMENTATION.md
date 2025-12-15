@@ -12,9 +12,19 @@ Ce document resume les pratiques de commentaires/TODO et les chantiers en cours.
 - [ ] Rust backend: commandes de capture webcam, detection/redressement, filtres, export PDF/PNG/JPG.
 - [ ] Frontend React: UI de capture (etat sans camera, selection camera), recadrage manuel, flux multi-page.
 - [ ] Configuration/persistance: chargement/sauvegarde des favoris, dossiers et profils.
-- [ ] Observabilite: logger minimal (fichier + console) et traces pour le pipeline de traitement.
+- [x] Observabilite: logger minimal en place (console + fichier). Reste a tracer le pipeline (capture/detection/export) avec contexte (session, device).
 - [ ] Tests: golden images pour detection/redressement, mocks video pour tests d'integration.
 - [ ] Packaging: regeneration des icones multi-tailles (voir section ci-dessous).
+
+## Logger minimal (Rust backend)
+- Initialisation dans `src-tauri/src/main.rs` (`init_logger`), lancee au startup Tauri.
+- Sorties:
+  - Console: niveau `INFO` pour ne pas saturer le dev server.
+  - Fichier: niveau `DEBUG` dans le dossier donnees applicatif (`~/.local/share/com.photon/Photon/photon.log` sous Linux; chemin equivalent selon l'OS).
+- Usage:
+  - Cote Rust: `log::info!("message")`, `log::debug!("details {:?}", data)`, `log::error!("message {}", err)`.
+  - Inspecter en dev: `tail -f ~/.local/share/com.photon/Photon/photon.log`.
+- TODO: ajouter un identifiant de session et les infos device/webcam dans les logs du pipeline.
 
 ## Icônes de l'application
 - Source actuelle: `src-tauri/icons/icon.png` (placeholder genere).
