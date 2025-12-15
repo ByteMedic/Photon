@@ -1,6 +1,6 @@
 # Photon - Scanner via webcam
 
-Application desktop (Tauri + Rust, frontend React) de scan par webcam, multi-plateforme (Windows, Linux, macOS). Elle detecte automatiquement le document, redresse l'image, rogne les bords et exporte en PDF, PNG ou JPG. L'utilisateur peut choisir un dossier d'export, definir des favoris (chemin + format) et beneficier d'un traitement d'image automatique pour ameliore contraste et lisibilite. Les scans peuvent contenir plusieurs pages. Projet open-source sous licence Apache-2.0, libre d'usage commercial, avec dependances permissives uniquement.
+Application desktop (Tauri + Rust, frontend React) de scan par webcam, multi-plateforme (Windows, Linux, macOS). Elle detecte automatiquement le document, redresse l'image, rogne les bords et exporte en PDF, PNG ou JPG. L'utilisateur peut choisir un dossier d'export, definir des favoris (chemin + format) et beneficier d'un traitement d'image automatique pour ameliore contraste et lisibilite. Les scans peuvent contenir plusieurs pages. Projet open-source sous licence Apache-2.0.
 
 ## Fonctionnalites ciblees
 - Acquisition par webcam avec apercu en temps reel, detection du document et redressement automatique.
@@ -20,7 +20,6 @@ Application desktop (Tauri + Rust, frontend React) de scan par webcam, multi-pla
 - Nommage automatique: modeles avec variables (date, heure, index, titre), eviter les collisions de fichiers.
 - Robustesse: reprises apres erreur, fichiers temporaires nettoyes, avertissement si espace disque faible.
 - Internationalisation: textes previsibles pour traduction si besoin.
-- OCR (optionnel): export avec texte extrait pour recherche; a cadrer selon perimetre.
 
 ## Choix techniques retenus / a arbitrer
 - Conteneur: application desktop Tauri (backend Rust, frontend React) pour acces natif fichiers/webcam, builds Windows/Linux/macOS.
@@ -41,7 +40,7 @@ Application desktop (Tauri + Rust, frontend React) de scan par webcam, multi-pla
 - Capture et detection de document stable avec recadrage manuel.
 - Pipeline de traitement (redressement, filtre lisibilite) robuste sur documents courants.
 - Export PDF multi-page + PNG/JPG avec controle qualite.
-- Systemes de favoris et de profils simples (format + dossier + nommage auto).
+- Systemes de profils simples (format + dossier + nommage auto).
 - Tests basiques sur detection/traitement et sur le flux multi-pages.
 - Documentation utilisateur succincte et guide de configuration.
 
