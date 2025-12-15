@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
-use sysinfo::{DiskExt, RefreshKind, System, SystemExt};
+use sysinfo::Disks;
 
 // Commandes Rust -> frontend React. Ajouter ici les traitements image/exports.
 // TODO(scanner): remplacer les stubs par les implementations definitives (capture, detection, export).
@@ -289,15 +289,15 @@ fn cleanup_temporary_files() -> anyhow::Result<CleanupReport> {
 /// Mesure l'espace disque disponible sur le volume qui contient `path`. En cas d'absence
 /// de correspondance, on renvoie une erreur explicite pour faciliter le debuggage.
 fn available_disk_space(path: &Path) -> anyhow::Result<u64> {
-    let mut system = System::new_with_specifics(RefreshKind::new().with_disks_list().with_disks());
-    system.refresh_disks_list();
-    system.refresh_disks();
+    let mut disks = Disks::new_with_refreshed_list();
+    // Rafraichir les statistiques sans reconstruire la liste.
+    disks.refresh();
 
     let mount = path
         .ancestors()
         .find_map(|ancestor| {
-            system
-                .disks()
+            disks
+                .list()
                 .iter()
                 .find(|disk| ancestor.starts_with(disk.mount_point()))
         })

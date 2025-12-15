@@ -39,6 +39,7 @@
 7) Traitement d'image
    - [ ] Filtres: contraste/niveaux de gris/threshold adaptatif, denoising leger, nettete.
    - [ ] Parametrage par profil (ex: texte/photo) et presets rapides.
+   - [ ] Création de profil à l'issue d'un scan possible en option en utilisants les paramètres utilisés.
 8) Flux multi-page
    - [ ] Capture iterative, liste des pages, re-ordre par glisser, suppression/retake.
    - [ ] Sauvegarde temporaire, gestion memoire/poids par page.
@@ -52,7 +53,7 @@
     - [x] Nettoyage fichiers temporaires, gestion faible espace disque.
     - [x] Logs debug (console + fichier) en place; tracer completement le pipeline capture/detection/export.
 12) Accessibilite et UX finale
-    - [ ] Raccourcis clavier, focus visibles, feedback visuel/sonore lors de la capture.
+    - [ ] Raccourcis clavier, focus visibles, feedback visuel/sonore lors de la capture (option).
     - [x] Internationalisation pretee (fichiers de traduction), theming basique.
 13) Tests et QA
     - [ ] Tests unitaires (vision, filtres), tests d'integration sur flux multi-page.

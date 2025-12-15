@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
-import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent, FormEvent, RefObject } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import en from "./locales/en.json";
 import fr from "./locales/fr.json";

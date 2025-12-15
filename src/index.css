@@ -638,6 +638,11 @@ h3 {
 }
 
 .favorites-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .naming-section {
   display: flex;
   flex-direction: column;
@@ -687,6 +692,7 @@ h3 {
 
 .hidden-input {
   display: none;
+}
 .naming-meta {
   display: flex;
   flex-direction: column;
