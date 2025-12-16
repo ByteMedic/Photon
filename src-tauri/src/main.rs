@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use nokhwa::utils::ApiBackend;
+use nokhwa::utils::{ApiBackend, CameraIndex, CameraInfo};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -51,6 +51,15 @@ fn export_pdf_stub() -> Result<(), String> {
 struct RuntimeInfo {
     webcam_detected: bool,
     active_profile: Option<String>,
+}
+
+/// Representation simplifiee d'une webcam pour l'UI (selection + affichage backend).
+#[derive(Serialize)]
+struct FrontendCamera {
+    id: String,
+    label: String,
+    description: String,
+    backend: String,
 }
 
 /// Configuration applicative minimale pour exposer un profil actif.
@@ -351,34 +360,87 @@ fn housekeeping() -> Result<HousekeepingStatus, String> {
         })
 }
 
-/// Détecte la présence d'au moins une webcam en interrogeant les périphériques.
-/// On utilise `nokhwa` avec le backend automatique pour rester cross-plateforme.
-fn detect_webcam_presence() -> anyhow::Result<bool> {
-    // `nokhwa::query` ne réserve pas la caméra : on peut l'appeler en toute sécurité
-    // au démarrage pour exposer un état rapide au frontend.
-    let backend = preferred_backend();
-    let cameras = nokhwa::query(backend)?;
-    Ok(!cameras.is_empty())
+/// Retourne la liste des webcams detectees avec le backend retenu.
+#[tauri::command]
+fn list_webcams() -> Result<Vec<FrontendCamera>, String> {
+    query_webcams()
+        .map(|(backend, cameras)| {
+            cameras
+                .into_iter()
+                .map(|info| FrontendCamera {
+                    id: camera_index_to_string(info.index()),
+                    label: info.human_name(),
+                    description: info.description().to_string(),
+                    backend: format!("{backend:?}"),
+                })
+                .collect()
+        })
+        .map_err(|err| {
+            log::error!("webcam:list_failed: {err}");
+            err.to_string()
+        })
 }
 
-/// Selectionne le backend webcam preferé par OS. Sous Linux, on force V4L pour
-/// éviter les warnings PipeWire/GStreamer; ailleurs on reste sur les backends natifs.
-fn preferred_backend() -> ApiBackend {
+/// Détecte la présence d'au moins une webcam en interrogeant les périphériques.
+fn detect_webcam_presence() -> anyhow::Result<bool> {
+    query_webcams().map(|(_, cams)| !cams.is_empty())
+}
+
+/// Selectionne les backends webcam par OS. Sous Linux, on teste V4L d'abord,
+/// puis Auto pour laisser une chance a un environnement PipeWire/GStreamer.
+fn preferred_backends() -> &'static [ApiBackend] {
     #[cfg(target_os = "linux")]
     {
-        ApiBackend::Video4Linux
+        &[ApiBackend::Video4Linux, ApiBackend::Auto]
     }
     #[cfg(target_os = "windows")]
     {
-        ApiBackend::MediaFoundation
+        &[ApiBackend::MediaFoundation, ApiBackend::Auto]
     }
     #[cfg(target_os = "macos")]
     {
-        ApiBackend::AVFoundation
+        &[ApiBackend::AVFoundation, ApiBackend::Auto]
     }
     #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
     {
-        ApiBackend::Auto
+        &[ApiBackend::Auto]
+    }
+}
+
+/// Extrait la liste des webcams en essayant les backends dans l'ordre preferentiel.
+/// Si un backend repond mais avec 0 camera, on tente le suivant avant de conclure.
+fn query_webcams() -> anyhow::Result<(ApiBackend, Vec<CameraInfo>)> {
+    let mut last_error: Option<anyhow::Error> = None;
+    let mut last_ok: Option<(ApiBackend, Vec<CameraInfo>)> = None;
+
+    for backend in preferred_backends() {
+        log::info!("webcam: probing backend {:?}", backend);
+        match nokhwa::query(*backend) {
+            Ok(cameras) => {
+                log::info!("webcam: backend {:?} returned {} device(s)", backend, cameras.len());
+                if !cameras.is_empty() {
+                    return Ok((*backend, cameras));
+                }
+                last_ok = Some((*backend, cameras));
+            }
+            Err(err) => {
+                log::warn!("webcam: backend {:?} failed: {}", backend, err);
+                last_error = Some(anyhow::anyhow!(err));
+            }
+        }
+    }
+
+    if let Some(ok) = last_ok {
+        return Ok(ok);
+    }
+
+    Err(last_error.unwrap_or_else(|| anyhow::anyhow!("no webcam backend available")))
+}
+
+fn camera_index_to_string(index: &CameraIndex) -> String {
+    match index {
+        CameraIndex::Index(i) => i.to_string(),
+        CameraIndex::String(s) => s.clone(),
     }
 }
 
@@ -392,7 +454,8 @@ fn main() {
             detect_document_stub,
             export_pdf_stub,
             runtime_info,
-            housekeeping
+            housekeeping,
+            list_webcams
         ])
         .setup(|_app| {
             if let Err(err) = init_logger() {

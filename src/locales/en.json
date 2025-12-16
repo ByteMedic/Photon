@@ -194,11 +194,15 @@
     "logLabel": "Log file",
     "logMissing": "Path not loaded yet.",
     "runtimeWebcam": "Webcam detected",
+    "runtimeCameras": "Cameras",
     "runtimeProfile": "Active profile",
     "runtimeYes": "Yes",
     "runtimeNo": "No",
     "runtimeMissing": "State not loaded yet.",
     "profileNone": "None",
+    "cameraSelect": "Select a camera",
+    "cameraNone": "No camera detected.",
+    "cameraNoDescription": "No description provided.",
     "errorPrefix": "Error",
     "instructions": "Click the button to retrieve diagnostics (log + runtime state)."
   }

@@ -64,6 +64,13 @@ type RuntimeInfo = {
   active_profile: string | null;
 };
 
+type CameraDevice = {
+  id: string;
+  label: string;
+  description: string;
+  backend: string;
+};
+
 // Centralized translation map ensures we only maintain translations in dedicated JSON files.
 const translations: Record<Locale, TranslationSchema> = {
   en,
@@ -892,6 +899,9 @@ function App() {
   const [logError, setLogError] = useState<string | null>(null);
   const [runtimeInfo, setRuntimeInfo] = useState<RuntimeInfo | null>(null);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
+  const [cameras, setCameras] = useState<CameraDevice[] | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const [loadingDiagnostics, setLoadingDiagnostics] = useState(false);
   // Config (favorites + preferences) persisted locally to mimic the future Rust storage.
   const [userConfig, setUserConfig] = useState<UserConfig>(readStoredConfig);
@@ -901,8 +911,6 @@ function App() {
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null);
   // Cache the list of available cameras as soon as the browser exposes them.
   const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
-  // Surface the chosen camera so the selection dropdown stays controlled.
-  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   // Track permission state and errors to inform the user on the capture screen.
   const [permissionState, setPermissionState] = useState<PermissionState>("idle");
   const [permissionError, setPermissionError] = useState<string | null>(null);
@@ -1022,17 +1030,25 @@ function App() {
     setLoadingDiagnostics(true);
     setLogError(null);
     setRuntimeError(null);
+    setCameraError(null);
     try {
       const path = await invoke<string>("log_path");
       setLogPath(path);
       const info = await invoke<RuntimeInfo>("runtime_info");
       setRuntimeInfo(info);
+      const devices = await invoke<CameraDevice[]>("list_webcams");
+      setCameras(devices);
+      if (devices.length > 0) {
+        setSelectedCameraId((current) => current ?? devices[0].id);
+      }
     } catch (err) {
       // Use the same error message for both pieces of data to avoid losing context for the user.
       setLogError(String(err));
       setRuntimeError(String(err));
+      setCameraError(String(err));
       setLogPath(null);
       setRuntimeInfo(null);
+      setCameras(null);
     } finally {
       setLoadingDiagnostics(false);
     }
@@ -1320,14 +1336,54 @@ function App() {
                   <p className="muted">{t.diagnostics.runtimeMissing}</p>
                 )}
               </div>
+              <div className="runtime-block">
+                <span className="label">{t.diagnostics.runtimeCameras}</span>
+                {cameras ? (
+                  cameras.length > 0 ? (
+                    <div className="camera-select">
+                      <label className="sr-only" htmlFor="camera-select">
+                        {t.diagnostics.cameraSelect}
+                      </label>
+                      <select
+                        id="camera-select"
+                        value={selectedCameraId ?? ""}
+                        onChange={(event) => setSelectedCameraId(event.target.value)}
+                      >
+                        {cameras.map((cam) => (
+                          <option key={cam.id} value={cam.id}>
+                            {cam.label} ({cam.backend})
+                          </option>
+                        ))}
+                      </select>
+                      <ul className="camera-list">
+                        {cameras.map((cam) => (
+                          <li key={cam.id} className="camera-item">
+                            <div className="camera-item-header">
+                              <div>
+                                <strong>{cam.label}</strong> <span className="muted">#{cam.id}</span>
+                              </div>
+                              <span className="pill pill-info">{cam.backend}</span>
+                            </div>
+                            <p className="muted">{cam.description || t.diagnostics.cameraNoDescription}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="muted">{t.diagnostics.cameraNone}</p>
+                  )
+                ) : (
+                  <p className="muted">{t.diagnostics.runtimeMissing}</p>
+                )}
+              </div>
             </div>
 
-            {(logError || runtimeError) && (
+            {(logError || runtimeError || cameraError) && (
               <div className="log-error">
-                {t.diagnostics.errorPrefix}: {logError || runtimeError}
+                {t.diagnostics.errorPrefix}: {logError || runtimeError || cameraError}
               </div>
             )}
-            {!logPath && !runtimeInfo && !logError && !runtimeError && (
+            {!logPath && !runtimeInfo && !cameras && !logError && !runtimeError && !cameraError && (
               <p className="muted">{t.diagnostics.instructions}</p>
             )}
           </div>

@@ -194,11 +194,15 @@
     "logLabel": "Fichier de log",
     "logMissing": "Chemin non chargé.",
     "runtimeWebcam": "Webcam détectée",
+    "runtimeCameras": "Caméras",
     "runtimeProfile": "Profil actif",
     "runtimeYes": "Oui",
     "runtimeNo": "Non",
     "runtimeMissing": "État non chargé.",
     "profileNone": "Aucun",
+    "cameraSelect": "Sélectionner une caméra",
+    "cameraNone": "Aucune caméra détectée.",
+    "cameraNoDescription": "Pas de description fournie.",
     "errorPrefix": "Erreur",
     "instructions": "Clique sur le bouton pour récupérer les diagnostics (log + état runtime)."
   }
