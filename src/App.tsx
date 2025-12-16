@@ -157,6 +157,28 @@ function FeatureItem({ title, description }: TranslationSchema["features"]["item
   );
 }
 
+function matchBackendCameraId(
+  mediaDeviceId: string | null,
+  mediaDevices: MediaDeviceInfo[],
+  backendDevices: CameraDevice[] | null
+): string | null {
+  if (!backendDevices || backendDevices.length === 0) return null;
+  if (!mediaDeviceId) return backendDevices[0]?.id ?? null;
+
+  const mediaIndex = mediaDevices.findIndex((d) => d.deviceId === mediaDeviceId);
+  if (mediaIndex >= 0 && backendDevices[mediaIndex]) {
+    return backendDevices[mediaIndex].id;
+  }
+
+  const mediaLabel = mediaDevices.find((d) => d.deviceId === mediaDeviceId)?.label;
+  if (mediaLabel) {
+    const backendMatch = backendDevices.find((cam) => cam.label === mediaLabel);
+    if (backendMatch) return backendMatch.id;
+  }
+
+  return backendDevices[0]?.id ?? null;
+}
+
 // Tab button used by the screen playground to keep the DOM minimal.
 function ScreenTab({
   label,
@@ -185,10 +207,12 @@ function CaptureScreen({
   selectedCameraId,
   onSelectCamera,
   onRequestAccess,
+  onCapture,
   onToggleMock,
   useMockVideo,
   isStreamActive,
   onRefreshDevices,
+  captureError,
 }: {
   t: TranslationSchema["uiPlayground"]["capture"];
   profileNames: string[];
@@ -199,10 +223,12 @@ function CaptureScreen({
   selectedCameraId: string | null;
   onSelectCamera: (id: string | null) => void;
   onRequestAccess: () => void;
+  onCapture: () => void;
   onToggleMock: (enabled: boolean) => void;
   useMockVideo: boolean;
   isStreamActive: boolean;
   onRefreshDevices: () => void;
+  captureError: string | null;
 }) {
   // Human-friendly label to surface the current permission state to the user.
   const permissionLabel = (() => {
@@ -296,9 +322,12 @@ function CaptureScreen({
               {permissionError && <p className="permission-error">{permissionError}</p>}
             </div>
             <div className="primary-actions">
-              <button className="primary">{t.captureAction}</button>
+              <button className="primary" onClick={onCapture}>
+                {t.captureAction}
+              </button>
               <button className="ghost">{t.retakeAction}</button>
             </div>
+            {captureError && <p className="permission-error">{captureError}</p>}
             <div className="stream-status">
               <span className="pill pill-info">{isStreamActive ? t.stream.active : t.stream.idle}</span>
             </div>
@@ -902,6 +931,8 @@ function App() {
   const [cameras, setCameras] = useState<CameraDevice[] | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
+  const [selectedBackendCameraId, setSelectedBackendCameraId] = useState<string | null>(null);
+  const [captureError, setCaptureError] = useState<string | null>(null);
   const [loadingDiagnostics, setLoadingDiagnostics] = useState(false);
   // Config (favorites + preferences) persisted locally to mimic the future Rust storage.
   const [userConfig, setUserConfig] = useState<UserConfig>(readStoredConfig);
@@ -942,11 +973,39 @@ function App() {
       if (!selectedCameraId && videoDevices[0]) {
         setSelectedCameraId(videoDevices[0].deviceId);
       }
+      const backendId = matchBackendCameraId(selectedCameraId, videoDevices, cameras);
+      if (backendId) {
+        setSelectedBackendCameraId(backendId);
+      }
     } catch (err) {
       setPermissionState("error");
       setPermissionError(String(err));
     }
   };
+
+  const handleCapture = async () => {
+    setCaptureError(null);
+    try {
+      await invoke("capture_frame_stub", { camera_id: selectedBackendCameraId ?? selectedCameraId });
+    } catch (err) {
+      setCaptureError(String(err));
+    }
+  };
+
+  const handleSelectCamera = (id: string | null) => {
+    setSelectedCameraId(id);
+    const backendId = matchBackendCameraId(id, availableCameras, cameras);
+    if (backendId) {
+      setSelectedBackendCameraId(backendId);
+    }
+  };
+
+  useEffect(() => {
+    const backendId = matchBackendCameraId(selectedCameraId, availableCameras, cameras);
+    if (backendId) {
+      setSelectedBackendCameraId(backendId);
+    }
+  }, [cameras]);
 
   // Central function to request webcam access or fall back to the mock video clip.
   const requestWebcamAccess = async (cameraId?: string) => {
@@ -1039,7 +1098,7 @@ function App() {
       const devices = await invoke<CameraDevice[]>("list_webcams");
       setCameras(devices);
       if (devices.length > 0) {
-        setSelectedCameraId((current) => current ?? devices[0].id);
+        setSelectedBackendCameraId((current) => current ?? devices[0].id);
       }
     } catch (err) {
       // Use the same error message for both pieces of data to avoid losing context for the user.
@@ -1246,8 +1305,9 @@ function App() {
             permissionError={permissionError}
             availableCameras={availableCameras}
             selectedCameraId={selectedCameraId}
-            onSelectCamera={(id) => setSelectedCameraId(id)}
+            onSelectCamera={handleSelectCamera}
             onRequestAccess={() => requestWebcamAccess(selectedCameraId ?? undefined)}
+            onCapture={handleCapture}
             onToggleMock={(enabled) => {
               setUseMockVideo(enabled);
               // Restart preview immediately with the chosen mode.
@@ -1256,6 +1316,7 @@ function App() {
             useMockVideo={useMockVideo}
             isStreamActive={Boolean(webcamStream) || useMockVideo}
             onRefreshDevices={refreshCameras}
+            captureError={captureError}
           />
         )}
         {activeScreen === "crop" && <CropScreen t={t.uiPlayground.crop} />}
