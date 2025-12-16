@@ -1,0 +1,32 @@
+{
+  "name": "Photon Devcontainer",
+  "dockerFile": "Dockerfile",
+  "context": "..",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "18"
+    },
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "stable"
+    },
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "postCreateCommand": "npm install",
+  "remoteUser": "vscode",
+  "forwardPorts": [5173, 1420],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "files.trimTrailingWhitespace": true,
+        "editor.formatOnSave": false
+      },
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tauri-apps.tauri-vscode",
+        "ms-vscode.vscode-typescript-tslint-plugin",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}
