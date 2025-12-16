@@ -25,10 +25,11 @@ fn log_path() -> Result<String, String> {
 }
 
 #[tauri::command]
-fn capture_frame_stub() -> Result<(), String> {
+fn capture_frame_stub(camera_id: Option<String>) -> Result<(), String> {
     log::info!("capture_frame:start");
     log::debug!(
-        "capture_frame: TODO: ouvrir la webcam selectionnee et retourner un buffer d'image"
+        "capture_frame: TODO: ouvrir la webcam selectionnee et retourner un buffer d'image (camera_id={:?})",
+        camera_id
     );
     Err("capture_frame not implemented".to_string())
 }

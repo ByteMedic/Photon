@@ -17,6 +17,8 @@ RUN apt-get update \
     pkg-config \
     ca-certificates \
     patchelf \
+    clang \
+    libclang-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Permissions for the default non-root user (created by base image).

@@ -2,6 +2,7 @@
   "name": "Photon Devcontainer",
   "dockerFile": "Dockerfile",
   "context": "..",
+  "shutdownAction": "stopContainer",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
       "version": "18"
@@ -14,6 +15,11 @@
   "postCreateCommand": "npm install",
   "remoteUser": "vscode",
   "forwardPorts": [5173, 1420],
+  "runArgs": [
+    "--device=/dev/video0:/dev/video0",
+    "--device=/dev/video1:/dev/video1",
+    "--group-add=video"
+  ],
   "customizations": {
     "vscode": {
       "settings": {
@@ -23,9 +29,7 @@
       },
       "extensions": [
         "rust-lang.rust-analyzer",
-        "tauri-apps.tauri-vscode",
-        "ms-vscode.vscode-typescript-tslint-plugin",
-        "esbenp.prettier-vscode"
+        "tauri-apps.tauri-vscode"
       ]
     }
   }
