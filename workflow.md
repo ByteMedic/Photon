@@ -55,6 +55,7 @@
 12) Accessibilite et UX finale
     - [ ] Raccourcis clavier, focus visibles, feedback visuel/sonore lors de la capture (option).
     - [x] Internationalisation pretee (fichiers de traduction), theming basique.
+    - [ ] UI complète à faire
 13) Tests et QA
     - [ ] Tests unitaires (vision, filtres), tests d'integration sur flux multi-page.
     - [ ] Jeux d'images de reference; tests manuels avec webcams reelles.

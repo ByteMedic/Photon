@@ -356,8 +356,30 @@ fn housekeeping() -> Result<HousekeepingStatus, String> {
 fn detect_webcam_presence() -> anyhow::Result<bool> {
     // `nokhwa::query` ne réserve pas la caméra : on peut l'appeler en toute sécurité
     // au démarrage pour exposer un état rapide au frontend.
-    let cameras = nokhwa::query(ApiBackend::Auto)?;
+    let backend = preferred_backend();
+    let cameras = nokhwa::query(backend)?;
     Ok(!cameras.is_empty())
+}
+
+/// Selectionne le backend webcam preferé par OS. Sous Linux, on force V4L pour
+/// éviter les warnings PipeWire/GStreamer; ailleurs on reste sur les backends natifs.
+fn preferred_backend() -> ApiBackend {
+    #[cfg(target_os = "linux")]
+    {
+        ApiBackend::Video4Linux
+    }
+    #[cfg(target_os = "windows")]
+    {
+        ApiBackend::MediaFoundation
+    }
+    #[cfg(target_os = "macos")]
+    {
+        ApiBackend::AVFoundation
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "windows", target_os = "macos")))]
+    {
+        ApiBackend::Auto
+    }
 }
 
 // TODO(scanner): exposer des commandes Rust pour la capture webcam et le pipeline image (detection, redressement, filtres, export PDF/PNG/JPG).
