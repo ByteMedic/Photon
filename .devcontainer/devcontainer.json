@@ -18,7 +18,14 @@
   "runArgs": [
     "--device=/dev/video0:/dev/video0",
     "--device=/dev/video1:/dev/video1",
+    "--device=/dev/video2:/dev/video2",
+    "--device=/dev/video3:/dev/video3",
     "--group-add=video"
+  ],
+  "mounts": [
+    "source=photon-devcontainer-vscode-extensions,target=/home/vscode/.vscode-server/extensions,type=volume",
+    "source=photon-devcontainer-vscode-userdata,target=/home/vscode/.vscode-server/data/User,type=volume",
+    "source=photon-devcontainer-vscode-machine,target=/home/vscode/.vscode-server/data/Machine,type=volume"
   ],
   "customizations": {
     "vscode": {
@@ -29,7 +36,8 @@
       },
       "extensions": [
         "rust-lang.rust-analyzer",
-        "tauri-apps.tauri-vscode"
+        "tauri-apps.tauri-vscode",
+        "openai.chatgpt"
       ]
     }
   }
